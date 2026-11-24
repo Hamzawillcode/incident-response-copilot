@@ -1,0 +1,24 @@
+{
+ "description": "Many-to-many vector match: HTTP 422 errorType=execution.",
+ "recorded_at": "2026-11-20T20:16:11.765284+00:00",
+ "prometheus_url": "http://localhost:9090",
+ "request": {
+  "method": "GET",
+  "path": "/api/v1/query_range",
+  "params": {
+   "query": "traces_span_metrics_calls_total + on(job) traces_span_metrics_calls_total",
+   "start": "1795203971.765",
+   "end": "1795205771.765",
+   "step": "15"
+  }
+ },
+ "response": {
+  "status_code": 422,
+  "content_type": "application/json",
+  "body": {
+   "status": "error",
+   "errorType": "execution",
+   "error": "found duplicate series for the match group {job=\"opentelemetry-demo/flagd-ui\"} on the right hand-side of the operation: [{__name__=\"traces_span_metrics_calls_total\", collector_instance_id=\"5ef68cec-a9e2-4773-9be0-8a4b9bc2fd9e\", host_name=\"docker-desktop\", instance=\"flagd_ui@eb545171dab2\", job=\"opentelemetry-demo/flagd-ui\", service_criticality=\"low\", service_instance_id=\"flagd_ui@eb545171dab2\", service_name=\"flagd-ui\", service_namespace=\"opentelemetry-demo\", service_version=\"3.0.0\", span_kind=\"SPAN_KIND_SERVER\", span_name=\"GET /\", status_code=\"STATUS_CODE_UNSET\"}, {__name__=\"traces_span_metrics_calls_total\", collector_instance_id=\"5ef68cec-a9e2-4773-9be0-8a4b9bc2fd9e\", host_name=\"docker-desktop\", instance=\"flagd_ui@eb545171dab2\", job=\"opentelemetry-demo/flagd-ui\", service_criticality=\"low\", service_instance_id=\"flagd_ui@eb545171dab2\", service_name=\"flagd-ui\", service_namespace=\"opentelemetry-demo\", service_version=\"3.0.0\", span_kind=\"SPAN_KIND_SERVER\", span_name=\"FlagdUiWeb.Dashboard.mount\", status_code=\"STATUS_CODE_UNSET\"}];many-to-many matching not allowed: matching labels must be unique on one side"
+  }
+ }
+}

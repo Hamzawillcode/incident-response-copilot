@@ -1,0 +1,1870 @@
+{
+ "description": "get_traces(service=\"fraud-detection\", errors_only=True, minutes=60): the only error spans are flagd EventStream spans.",
+ "recorded_at": "2026-11-20T20:56:29+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/jaeger/ui/api/traces",
+  "params": {
+   "service": "fraud-detection",
+   "start": "1795204589831250",
+   "end": "1795208189831250",
+   "limit": "6",
+   "tags": "{\"error\": \"true\"}"
+  },
+  "json_body": null
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json",
+  "body": {
+   "data": [
+    {
+     "traceID": "293b25f3f307754d758e07e7ea758406",
+     "spans": [
+      {
+       "traceID": "293b25f3f307754d758e07e7ea758406",
+       "spanID": "b79a7c6e01553f9f",
+       "operationName": "flagd.evaluation.v2.Service/EventStream",
+       "references": [
+        {
+         "refType": "CHILD_OF",
+         "traceID": "293b25f3f307754d758e07e7ea758406",
+         "spanID": "0fba2c280949226d"
+        }
+       ],
+       "startTime": 1795207234766735,
+       "duration": 599993186,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "connectrpc.com/otelconnect"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "semver:0.6.0-dev"
+        },
+        {
+         "key": "rpc.grpc.status_code",
+         "type": "int64",
+         "value": 4
+        },
+        {
+         "key": "rpc.method",
+         "type": "string",
+         "value": "EventStream"
+        },
+        {
+         "key": "rpc.service",
+         "type": "string",
+         "value": "flagd.evaluation.v2.Service"
+        },
+        {
+         "key": "rpc.system",
+         "type": "string",
+         "value": "grpc"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "server"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        },
+        {
+         "key": "otel.status_description",
+         "type": "string",
+         "value": "stream closed due to server-side timeout"
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207234766811,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 1
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 0
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207234767643,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 1
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 18
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207254769357,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 2
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207274770072,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 3
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207294771686,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 4
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207314773312,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 5
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207334774609,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 6
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207354776285,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 7
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207374779072,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 8
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207394777410,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 9
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207414779415,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 10
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207434786225,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 11
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207454788437,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 12
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207474790228,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 13
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207494792369,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 14
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207514794124,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 15
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207534795310,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 16
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207554798423,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 17
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207574801173,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 18
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207594802893,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 19
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207614804661,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 20
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207634806443,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 21
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207654806976,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 22
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207674809533,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 23
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207694812039,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 24
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207714813565,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 25
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207734815249,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 26
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207754816166,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 27
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207774818757,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 28
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207794822468,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 29
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207802603150,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 30
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 210
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207822603140,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 31
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          },
+          {
+           "key": "message.uncompressed_size",
+           "type": "int64",
+           "value": 12
+          }
+         ]
+        }
+       ],
+       "processID": "p1",
+       "warnings": null
+      },
+      {
+       "traceID": "293b25f3f307754d758e07e7ea758406",
+       "spanID": "0fba2c280949226d",
+       "operationName": "flagd.evaluation.v2.Service/EventStream",
+       "references": [],
+       "startTime": 1795207234754804,
+       "duration": 600016525,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "io.opentelemetry.grpc-1.6"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "2.31.1-alpha"
+        },
+        {
+         "key": "network.peer.address",
+         "type": "string",
+         "value": "172.20.0.10"
+        },
+        {
+         "key": "network.peer.port",
+         "type": "int64",
+         "value": 8013
+        },
+        {
+         "key": "network.type",
+         "type": "string",
+         "value": "ipv4"
+        },
+        {
+         "key": "rpc.grpc.status_code",
+         "type": "int64",
+         "value": 4
+        },
+        {
+         "key": "rpc.method",
+         "type": "string",
+         "value": "EventStream"
+        },
+        {
+         "key": "rpc.service",
+         "type": "string",
+         "value": "flagd.evaluation.v2.Service"
+        },
+        {
+         "key": "rpc.system",
+         "type": "string",
+         "value": "grpc"
+        },
+        {
+         "key": "server.address",
+         "type": "string",
+         "value": "flagd"
+        },
+        {
+         "key": "server.port",
+         "type": "int64",
+         "value": 8013
+        },
+        {
+         "key": "thread.id",
+         "type": "int64",
+         "value": 23
+        },
+        {
+         "key": "thread.name",
+         "type": "string",
+         "value": "flagd-rpc-retry-scheduler"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "client"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207234761936,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 1
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "SENT"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207234774124,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 1
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207254784045,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 2
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207274774151,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 3
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207294780712,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 4
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207314788071,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 5
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207334779311,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 6
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207354787026,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 7
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207374793468,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 8
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207394783616,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 9
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207414796789,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 10
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207434800528,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 11
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207454809923,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 12
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207474796730,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 13
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207494805881,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 14
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207514803643,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 15
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207534804978,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 16
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207554812586,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 17
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207574809508,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 18
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207594822859,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 19
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207614821232,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 20
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207634820440,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 21
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207654810428,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 22
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207674818791,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 23
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207694824100,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 24
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207714823571,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 25
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207734825878,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 26
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207754833667,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 27
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207774852673,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 28
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207794838445,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 29
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207802628570,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 30
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        },
+        {
+         "timestamp": 1795207822612633,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "message"
+          },
+          {
+           "key": "message.id",
+           "type": "int64",
+           "value": 31
+          },
+          {
+           "key": "message.type",
+           "type": "string",
+           "value": "RECEIVED"
+          }
+         ]
+        }
+       ],
+       "processID": "p2",
+       "warnings": null
+      }
+     ],
+     "processes": {
+      "p1": {
+       "serviceName": "flagd",
+       "tags": [
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "process.runtime.version",
+         "type": "string",
+         "value": "go1.25.10"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "go"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.43.0"
+        }
+       ]
+      },
+      "p2": {
+       "serviceName": "fraud-detection",
+       "tags": [
+        {
+         "key": "container.id",
+         "type": "string",
+         "value": "e31667a61bbd2df42a13a52b36912724dd81ecb9598c9fb9da3e709572840986"
+        },
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "os.version",
+         "type": "string",
+         "value": "6.12.76-linuxkit"
+        },
+        {
+         "key": "process.command_args",
+         "type": "string",
+         "value": "[\"/usr/lib/jvm/java-17-openjdk-arm64/bin/java\",\"-jar\",\"fraud-detection-1.0-all.jar\"]"
+        },
+        {
+         "key": "process.executable.path",
+         "type": "string",
+         "value": "/usr/lib/jvm/java-17-openjdk-arm64/bin/java"
+        },
+        {
+         "key": "process.pid",
+         "type": "int64",
+         "value": 1
+        },
+        {
+         "key": "process.runtime.description",
+         "type": "string",
+         "value": "Debian OpenJDK 64-Bit Server VM 17.0.18+8-Debian-1deb12u1"
+        },
+        {
+         "key": "process.runtime.name",
+         "type": "string",
+         "value": "OpenJDK Runtime Environment"
+        },
+        {
+         "key": "process.runtime.version",
+         "type": "string",
+         "value": "17.0.18+8-Debian-1deb12u1"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.instance.id",
+         "type": "string",
+         "value": "bbee1805-00f1-4247-9b75-35a674a51d23"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.distro.name",
+         "type": "string",
+         "value": "opentelemetry-java-instrumentation"
+        },
+        {
+         "key": "telemetry.distro.version",
+         "type": "string",
+         "value": "2.31.1"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "java"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.65.0"
+        }
+       ]
+      }
+     },
+     "warnings": null
+    }
+   ],
+   "total": 0,
+   "limit": 0,
+   "offset": 0,
+   "errors": null
+  }
+ }
+}

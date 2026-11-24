@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# macOS
+.DS_Store
+
+# Upstream demo is a separate git checkout (tag 3.1.0); track our two local changes via DECISIONS.md
+opentelemetry-demo/
+
+# Secrets and local run output
+.env
+runs/

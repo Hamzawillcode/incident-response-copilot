@@ -1,0 +1,32 @@
+[project]
+name = "incident-response-copilot"
+version = "0.3.0"
+description = "Multi-agent incident detection and diagnosis for microservices (OpenTelemetry Demo testbed)."
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.28,<0.29",
+  "google-adk>=2.15,<3",
+  "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.4,<9"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["copilot*", "detector*"]
+
+[tool.setuptools.package-data]
+"copilot.prompts" = ["*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+markers = [
+  "live: needs the running OpenTelemetry Demo backends (auto-skipped otherwise)",
+  "allow_network: unit test that deliberately makes a real (local) connection attempt",
+]

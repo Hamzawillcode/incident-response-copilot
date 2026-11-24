@@ -1,0 +1,26 @@
+{
+ "description": "get_traces(service=\"does-not-exist\").",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/jaeger/ui/api/traces",
+  "params": {
+   "service": "does-not-exist",
+   "start": "1795207479838719",
+   "end": "1795207779838719",
+   "limit": "20"
+  },
+  "json_body": null
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json",
+  "body": {
+   "data": [],
+   "total": 0,
+   "limit": 0,
+   "offset": 0,
+   "errors": null
+  }
+ }
+}

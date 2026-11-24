@@ -1,0 +1,602 @@
+{
+ "description": "search_logs(level=\"warn\", minutes=120).",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/otel-logs-*/_search",
+  "params": {
+   "ignore_unavailable": "true",
+   "allow_no_indices": "true"
+  },
+  "json_body": {
+   "size": 200,
+   "timeout": "10s",
+   "track_total_hits": true,
+   "sort": [
+    {
+     "observedTimestamp": {
+      "order": "desc"
+     }
+    }
+   ],
+   "_source": [
+    "@timestamp",
+    "observedTimestamp",
+    "severity",
+    "body",
+    "eventName",
+    "traceId",
+    "spanId",
+    "attributes",
+    "resource.service.name",
+    "resource"
+   ],
+   "query": {
+    "bool": {
+     "filter": [
+      {
+       "range": {
+        "observedTimestamp": {
+         "gte": "2026-11-20T18:49:39.450Z",
+         "lte": "2026-11-20T20:49:39.450Z",
+         "format": "strict_date_optional_time"
+        }
+       }
+      },
+      {
+       "bool": {
+        "should": [
+         {
+          "range": {
+           "severity.number": {
+            "gte": 13,
+            "lte": 24
+           }
+          }
+         },
+         {
+          "bool": {
+           "must_not": [
+            {
+             "exists": {
+              "field": "severity.number"
+             }
+            }
+           ],
+           "filter": [
+            {
+             "terms": {
+              "severity.text.keyword": [
+               "CRIT",
+               "CRITICAL",
+               "Crit",
+               "Critical",
+               "EMERGENCY",
+               "ERR",
+               "ERROR",
+               "Emergency",
+               "Err",
+               "Error",
+               "FATAL",
+               "Fatal",
+               "PANIC",
+               "Panic",
+               "WARN",
+               "WARNING",
+               "Warn",
+               "Warning",
+               "crit",
+               "critical",
+               "emergency",
+               "err",
+               "error",
+               "fatal",
+               "panic",
+               "warn",
+               "warning"
+              ]
+             }
+            }
+           ]
+          }
+         }
+        ],
+        "minimum_should_match": 1
+       }
+      }
+     ],
+     "must": [],
+     "must_not": [
+      {
+       "terms": {
+        "resource.service.name.keyword": [
+         "flagd",
+         "flagd-ui"
+        ]
+       }
+      },
+      {
+       "query_string": {
+        "query": "*flagd* OR *flagservice* OR *ofrep* OR *openfeature* OR *featureflag* OR *feature_flag* OR \"feature flag\" OR adFailure OR adHighCpu OR adManualGc OR aiRunawayAgent OR aiSlowResponse OR cartFailure OR emailMemoryLeak OR emitRawPii OR failedReadinessProbe OR imageSlowLoad OR intlShippingSlowdown OR kafkaQueueProblems OR loadGeneratorFloodHomepage OR paymentFailure OR paymentUnreachable OR productCatalogFailure OR productCatalogLockContention OR recommendationCacheFailure",
+        "fields": [
+         "body",
+         "eventName"
+        ],
+        "analyze_wildcard": true
+       }
+      },
+      {
+       "query_string": {
+        "query": "_exists_:attributes.feature_flag*"
+       }
+      }
+     ]
+    }
+   },
+   "aggs": {
+    "by_service": {
+     "terms": {
+      "field": "resource.service.name.keyword",
+      "size": 40
+     }
+    },
+    "by_level": {
+     "filters": {
+      "filters": {
+       "trace": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 1,
+             "lte": 4
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "TRACE",
+                "Trace",
+                "trace"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "debug": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 5,
+             "lte": 8
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "DEBUG",
+                "Debug",
+                "debug"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "info": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 9,
+             "lte": 12
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "INFO",
+                "INFORMATION",
+                "INFORMATIONAL",
+                "Info",
+                "Information",
+                "Informational",
+                "info",
+                "information",
+                "informational"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "warn": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 13,
+             "lte": 16
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "WARN",
+                "WARNING",
+                "Warn",
+                "Warning",
+                "warn",
+                "warning"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "error": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 17,
+             "lte": 20
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "ERR",
+                "ERROR",
+                "Err",
+                "Error",
+                "err",
+                "error"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "fatal": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 21,
+             "lte": 24
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "CRIT",
+                "CRITICAL",
+                "Crit",
+                "Critical",
+                "EMERGENCY",
+                "Emergency",
+                "FATAL",
+                "Fatal",
+                "PANIC",
+                "Panic",
+                "crit",
+                "critical",
+                "emergency",
+                "fatal",
+                "panic"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       }
+      }
+     }
+    },
+    "first_seen": {
+     "min": {
+      "field": "observedTimestamp"
+     }
+    },
+    "last_seen": {
+     "max": {
+      "field": "observedTimestamp"
+     }
+    }
+   }
+  }
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json; charset=UTF-8",
+  "body": {
+   "took": 16,
+   "timed_out": false,
+   "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+   },
+   "hits": {
+    "total": {
+     "value": 3,
+     "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "7LWx-qEBmPE3-RMxepTY",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "@timestamp": "2026-11-20T20:41:37.534851833Z",
+       "resource": {
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "otelcol-contrib",
+        "host.cpu.stepping": "0",
+        "host.cpu.family": "",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "host.cpu.vendor.id": "Apple",
+        "service.instance.id": "b1717153-031f-4acd-a4e1-f97eb22b6064",
+        "service.version": "0.159.0",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "host.cpu.model.id": "0x000"
+       },
+       "attributes": {
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "code.file.path": "google.golang.org/grpc@v1.83.0/clientconn.go",
+        "code.function.name": "google.golang.org/grpc.(*addrConn).createTransport",
+        "grpc_log": true,
+        "code.line.number": 1532
+       },
+       "body": "[core] [Channel #2 SubChannel #3] grpc: addrConn.createTransport failed to connect to {Addr: \"172.20.0.6:4317\", ServerName: \"jaeger:4317\", }. Err: connection error: desc = \"transport: Error while dialing: dial tcp 172.20.0.6:4317: connect: connection refused\"",
+       "observedTimestamp": "2026-11-20T20:41:37.749555833Z"
+      },
+      "sort": [
+       1795207297749
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "arWx-qEBmPE3-RMxU5PA",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "@timestamp": "2026-11-20T20:41:26.848205926Z",
+       "resource": {
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "otelcol-contrib",
+        "host.cpu.stepping": "0",
+        "host.cpu.family": "",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "host.cpu.vendor.id": "Apple",
+        "service.instance.id": "b1717153-031f-4acd-a4e1-f97eb22b6064",
+        "service.version": "0.159.0",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "host.cpu.model.id": "0x000"
+       },
+       "attributes": {
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "code.file.path": "google.golang.org/grpc@v1.83.0/clientconn.go",
+        "code.function.name": "google.golang.org/grpc.(*addrConn).createTransport",
+        "grpc_log": true,
+        "code.line.number": 1532
+       },
+       "body": "[core] [Channel #2 SubChannel #3] grpc: addrConn.createTransport failed to connect to {Addr: \"172.20.0.6:4317\", ServerName: \"jaeger:4317\", }. Err: connection error: desc = \"transport: Error while dialing: dial tcp 172.20.0.6:4317: connect: connection refused\"",
+       "observedTimestamp": "2026-11-20T20:41:27.742254551Z"
+      },
+      "sort": [
+       1795207287742
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "a7Wx-qEBmPE3-RMxOJJx",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "@timestamp": "2026-11-20T20:41:19.718261381Z",
+       "resource": {
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "otelcol-contrib",
+        "host.cpu.stepping": "0",
+        "host.cpu.family": "",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "host.cpu.vendor.id": "Apple",
+        "service.instance.id": "b1717153-031f-4acd-a4e1-f97eb22b6064",
+        "service.version": "0.159.0",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "host.cpu.model.id": "0x000"
+       },
+       "attributes": {
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "code.file.path": "google.golang.org/grpc@v1.83.0/clientconn.go",
+        "code.function.name": "google.golang.org/grpc.(*addrConn).createTransport",
+        "grpc_log": true,
+        "code.line.number": 1532
+       },
+       "body": "[core] [Channel #2 SubChannel #3] grpc: addrConn.createTransport failed to connect to {Addr: \"172.20.0.6:4317\", ServerName: \"jaeger:4317\", }. Err: connection error: desc = \"transport: Error while dialing: dial tcp 172.20.0.6:4317: connect: connection refused\"",
+       "observedTimestamp": "2026-11-20T20:41:20.751633964Z"
+      },
+      "sort": [
+       1795207280751
+      ]
+     }
+    ]
+   },
+   "aggregations": {
+    "first_seen": {
+     "value": 1795207280751.0,
+     "value_as_string": "2026-11-20T20:41:20.751Z"
+    },
+    "by_service": {
+     "doc_count_error_upper_bound": 0,
+     "sum_other_doc_count": 0,
+     "buckets": [
+      {
+       "key": "otelcol-contrib",
+       "doc_count": 3
+      }
+     ]
+    },
+    "last_seen": {
+     "value": 1795207297749.0,
+     "value_as_string": "2026-11-20T20:41:37.749Z"
+    },
+    "by_level": {
+     "buckets": {
+      "debug": {
+       "doc_count": 0
+      },
+      "error": {
+       "doc_count": 0
+      },
+      "fatal": {
+       "doc_count": 0
+      },
+      "info": {
+       "doc_count": 0
+      },
+      "trace": {
+       "doc_count": 0
+      },
+      "warn": {
+       "doc_count": 3
+      }
+     }
+    }
+   }
+  }
+ }
+}

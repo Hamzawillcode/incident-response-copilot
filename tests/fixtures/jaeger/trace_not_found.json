@@ -1,0 +1,26 @@
+{
+ "description": "get_traces(trace_id=\"0\"*32): 404.",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/jaeger/ui/api/traces/00000000000000000000000000000000",
+  "params": {},
+  "json_body": null
+ },
+ "response": {
+  "status_code": 404,
+  "content_type": "text/plain; charset=utf-8",
+  "body": {
+   "data": null,
+   "total": 0,
+   "limit": 0,
+   "offset": 0,
+   "errors": [
+    {
+     "code": 404,
+     "msg": "trace not found"
+    }
+   ]
+  }
+ }
+}

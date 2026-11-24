@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 1 — Observability Tool Layer</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.1pt; line-height:1.47; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.4pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:8.9pt; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:155mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .ok { color:var(--ok); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .qa dt { font-weight:700; margin-top:7pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 1 (complete)</div>
+  <h1>The Observability Tool Layer</h1>
+  <div class="sub"><code>query_metrics</code>, <code>search_logs</code> and <code>get_traces</code>: three read-only, summarising tools sharing one sanitization policy, so that no feature-flag information can reach the future AI agents.</div>
+  <table>
+    <tr><td>Date completed</td><td>21 November 2026</td></tr>
+    <tr><td>Backends</td><td>Prometheus 3.13.1 · OpenSearch 3.7.0 · Jaeger 2.19.0 (OpenTelemetry Demo 3.1.0)</td></tr>
+    <tr><td>Code</td><td><code>copilot/tools/</code>: 6 modules, 1,615 lines, one runtime dependency (httpx 0.28.1)</td></tr>
+    <tr><td>Tests</td><td><span class="ok">352 passed</span> (342 unit + 10 live) · hermetic run: 342 passed, 10 skipped · 30 recorded fixtures</td></tr>
+    <tr><td>Security result</td><td><span class="ok">0 flag mentions</span> in tool outputs from data recorded while 4 faults were active</td></tr>
+  </table>
+</section>
+
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>Goal and scope</li>
+  <li>What we built</li>
+  <li>What we found in the real system</li>
+  <li>Architecture</li>
+  <li>Security model: feature-flag isolation</li>
+  <li><code>search_logs</code> (OpenSearch)</li>
+  <li><code>get_traces</code> (Jaeger)</li>
+  <li><code>query_metrics</code>: integration and changes</li>
+  <li>Code walkthrough</li>
+  <li>Examples (real output)</li>
+  <li>Testing</li>
+  <li>Final security and correctness review</li>
+  <li>Troubleshooting</li>
+  <li>Interview questions</li>
+  <li>Limitations, files and next steps</li>
+</ol>
+</section>
+
+<h2>1. Goal and scope</h2>
+<p>The earlier part of Phase 1 delivered <code>query_metrics()</code>. This phase completes the <b>observability tool layer</b> that the future investigation agents will call:</p>
+<ul>
+  <li><code>search_logs()</code> searches OpenSearch by service, level, time range, text (and trace ID), returning summaries.</li>
+  <li><code>get_traces()</code> searches Jaeger by service, operation, error status, time range (and min duration, or one trace ID), returning trace IDs, failed services, relevant spans and duration summaries.</li>
+  <li><code>filters.py</code> sanitizes all telemetry so no feature-flag (fault-injection) state reaches callers.</li>
+  <li>Integration with, and review of, <code>query_metrics()</code>.</li>
+</ul>
+<p><b>Constraints:</b> strictly read-only; URLs from environment variables; structured summaries, not dumps; tests on recorded responses plus live integration tests; <b>no AI agents and no Google ADK yet</b>. The tools are plain functions with signatures an agent framework can register later.</p>
+
+<h2>2. What we built</h2>
+<table>
+  <tr><th style="width:36%">File</th><th>Purpose</th></tr>
+  <tr><td><code>copilot/tools/_http.py</code> (196 lines)</td><td>The <b>only</b> network code: GET-only, per-tool path allow-list, <code>trust_env=False</code>, no redirects, streamed size cap, typed errors, credential stripping.</td></tr>
+  <tr><td><code>copilot/tools/filters.py</code> (256)</td><td>The <b>only</b> flag policy: input refusal, span/log/series sanitization, text redaction, final recursive scrub. Pure functions, no I/O.</td></tr>
+  <tr><td><code>copilot/tools/logs.py</code> (424)</td><td><code>search_logs()</code></td></tr>
+  <tr><td><code>copilot/tools/traces.py</code> (406)</td><td><code>get_traces()</code></td></tr>
+  <tr><td><code>copilot/tools/metrics.py</code> (312)</td><td><code>query_metrics()</code>, refactored onto the shared modules</td></tr>
+  <tr><td><code>copilot/tools/__init__.py</code></td><td><code>TOOLS = (query_metrics, get_traces, search_logs)</code></td></tr>
+  <tr><td><code>deploy/compose.copilot.yaml</code>, <code>scripts/start_demo.sh</code></td><td>Fixed, loopback-only ports for OpenSearch and Jaeger (§3, §5)</td></tr>
+  <tr><td><code>scripts/record_tool_fixtures.py</code></td><td>Records fixtures by running the real tools through a recording transport (normal and fault state)</td></tr>
+  <tr><td><code>tests/</code></td><td>7 test files, 352 tests, 30 recorded fixtures (11 Prometheus, 9 OpenSearch, 10 Jaeger)</td></tr>
+</table>
+
+<h2 class="page-break">3. What we found in the real system</h2>
+<p>Every design decision came from inspecting the running demo first. The most consequential findings:</p>
+<table>
+  <tr><th style="width:30%">Finding</th><th>Evidence</th><th style="width:28%">Consequence</th></tr>
+  <tr><td>OpenSearch and Jaeger have <b>no stable host port</b></td><td>Compose short syntax <code>"${OPENSEARCH_PORT}"</code> → random port (57777/57772 that day)</td><td>Overlay with fixed ports (D-204)</td></tr>
+  <tr><td>Those ports bind <b>0.0.0.0</b>; OpenSearch has <code>DISABLE_SECURITY_PLUGIN=true</code></td><td><code>docker port</code>, container env</td><td>Overlay binds <b>127.0.0.1</b> only</td></tr>
+  <tr><td>Jaeger is also reachable through Envoy (<code>:8080/jaeger/</code>), but Envoy traces every request</td><td>Envoy routes; <code>frontend-proxy → flagd-ui</code> edge from our own screenshots</td><td>Query Jaeger directly, or the copilot pollutes the signal it diagnoses</td></tr>
+  <tr><td><code>@timestamp = 1970-01-01</code> for shipping (Rust) and currency (C++) logs</td><td>Sample records per service</td><td>Filter and sort on <code>observedTimestamp</code></td></tr>
+  <tr><td>Severity is inconsistent</td><td><code>INFO</code> 42k, <code>info</code> 22k, <code>Information</code> 5k, none 58k; some text-only</td><td>Match number <i>or</i> normalised text</td></tr>
+  <tr><td><code>_source</code> uses dotted keys</td><td><code>{"resource": {"service.name": "cart"}}</code></td><td>Reader handles dotted and nested</td></tr>
+  <tr><td>Jaeger search requires <code>service</code></td><td><code>400 "parameter 'service' is required"</code>; unknown service → 200 empty</td><td><code>service</code> or <code>trace_id</code> mandatory</td></tr>
+  <tr><td>Most baseline "error traces" are flagd artefacts</td><td>ad, fraud-detection, recommendation: only errors were <code>flagd.evaluation.v2.Service/EventStream</code> timeouts (600 s)</td><td>Re-evaluate errors after sanitization</td></tr>
+</table>
+<h3>Where flag state leaks (all three signals)</h3>
+<table>
+  <tr><th style="width:15%">Signal</th><th>Leak (observed)</th></tr>
+  <tr><td>Traces</td><td>flagd / flagd-ui spans; client spans calling flagd (<code>rpc.service=flagd.evaluation.v2.Service</code>, <code>server.address=flagd</code>, OFREP URLs); <code>feature_flag.evaluation</code> span events with <code>feature_flag.key</code>, <code>.result.variant</code>, <code>.result.value</code> (cart, checkout, product-catalog); <code>demo.feature_flag.recommendation_cache</code></td></tr>
+  <tr><td>Logs</td><td>1,892 Envoy access logs <code>POST /flagservice/flagd.evaluation…</code>; shipping <code>shipping.feature_flag.evaluated</code> events with <code>feature_flag_key</code>/<code>feature_flag_variant</code></td></tr>
+  <tr><td>Metrics</td><td><code>feature_flag_evaluation_*</code> series with <code>feature_flag_key</code>/<code>feature_flag_result_variant</code>; flagd in <code>job</code>, <code>service_name</code>, <code>span_name</code>, <code>container_name</code></td></tr>
+  <tr><td><b>Fault narration</b> (only while a fault is active, found in the demo source)</td><td>"Error: Product Catalog Fail Feature Flag Enabled" (span status <i>and</i> event name) · "Feature Flag adManualGc enabled, performing a manual gc now" · "Delaying international shipment due to intlShippingSlowdown feature flag" · "Warning: FeatureFlag 'kafkaQueueProblems' is activated…" · "FeatureFlag 'kafkaQueueProblems' is enabled, sleeping 1 second"</td></tr>
+</table>
+
+<h2 class="page-break">4. Architecture</h2>
+<figure>
+<svg viewBox="0 0 800 330" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="za" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6475"/></marker></defs>
+  <style>
+    .zb{fill:#fff;stroke:#2f5bd3;stroke-width:1.3}
+    .zr{fill:#fdecea;stroke:#b42318;stroke-width:1.3}
+    .zg{fill:#e8f6ee;stroke:#1f7a45;stroke-width:1.3}
+    .zd{fill:#f1f4f9;stroke:#5b6475;stroke-width:1.2}
+    .zf{fill:#f7f9fd;stroke:#2f5bd3;stroke-width:1.4;stroke-dasharray:5 3}
+    .zh{font-size:11.5px;font-weight:700;fill:#1d2330;text-anchor:middle}
+    .zt{font-size:9.4px;fill:#5b6475;text-anchor:middle}
+    .zl{stroke:#5b6475;stroke-width:1.3;fill:none}
+    .zn{font-size:9.2px;fill:#5b6475}
+  </style>
+  <rect class="zd" x="10" y="135" width="110" height="60" rx="8"/><text class="zh" x="65" y="158">Caller</text><text class="zt" x="65" y="174">future agents,</text><text class="zt" x="65" y="186">tests, REPL</text>
+  <rect class="zf" x="140" y="15" width="470" height="300" rx="10"/><text class="zh" x="375" y="34">copilot/tools</text>
+  <rect class="zb" x="160" y="48" width="130" height="44" rx="6"/><text class="zh" x="225" y="67">query_metrics</text><text class="zt" x="225" y="82">PromQL range query</text>
+  <rect class="zb" x="160" y="104" width="130" height="44" rx="6"/><text class="zh" x="225" y="123">get_traces</text><text class="zt" x="225" y="138">search / by trace ID</text>
+  <rect class="zb" x="160" y="160" width="130" height="44" rx="6"/><text class="zh" x="225" y="179">search_logs</text><text class="zt" x="225" y="194">filters + patterns</text>
+  <rect class="zr" x="320" y="48" width="130" height="156" rx="6"/><text class="zh" x="385" y="72">filters.py</text>
+  <text class="zt" x="385" y="92">1 refuse flag inputs</text><text class="zt" x="385" y="110">2 sanitize spans</text><text class="zt" x="385" y="128">3 sanitize logs</text><text class="zt" x="385" y="146">4 drop flag series</text><text class="zt" x="385" y="164">5 redact text</text><text class="zt" x="385" y="182">6 scrub_output</text>
+  <rect class="zg" x="470" y="48" width="125" height="156" rx="6"/><text class="zh" x="532" y="72">_http.py</text>
+  <text class="zt" x="532" y="92">GET only</text><text class="zt" x="532" y="110">path allow-list</text><text class="zt" x="532" y="128">trust_env=False</text><text class="zt" x="532" y="146">no redirects</text><text class="zt" x="532" y="164">size cap</text><text class="zt" x="532" y="182">typed errors</text>
+  <path class="zl" d="M290,70 L318,70" marker-end="url(#za)"/><path class="zl" d="M290,126 L318,126" marker-end="url(#za)"/><path class="zl" d="M290,182 L318,182" marker-end="url(#za)"/>
+  <path class="zl" d="M450,126 L468,126" marker-end="url(#za)"/>
+  <text class="zn" x="160" y="232">Every tool: validate → refuse flag inputs → build request → _http.get_json</text>
+  <text class="zn" x="160" y="248">→ normalise → filters.sanitize_* → summarise → filters.scrub_output → dict</text>
+  <text class="zn" x="160" y="272">Never raises: ToolError → {"status":"error"}; any other exception → "internal"</text>
+  <text class="zn" x="160" y="296">Status contract: "ok" | "no_data" | "error" (+ error.type, error.message)</text>
+  <rect class="zd" x="650" y="40" width="140" height="48" rx="7"/><text class="zh" x="720" y="60">Prometheus</text><text class="zt" x="720" y="76">:9090 /api/v1/query_range</text>
+  <rect class="zd" x="650" y="104" width="140" height="48" rx="7"/><text class="zh" x="720" y="124">Jaeger</text><text class="zt" x="720" y="140">127.0.0.1:16686 /api/traces</text>
+  <rect class="zd" x="650" y="168" width="140" height="56" rx="7"/><text class="zh" x="720" y="186">OpenSearch</text><text class="zt" x="720" y="201">127.0.0.1:9200</text><text class="zt" x="720" y="214">/otel-logs-*/_search</text>
+  <path class="zl" d="M595,80 L648,64" marker-end="url(#za)"/><path class="zl" d="M595,126 L648,128" marker-end="url(#za)"/><path class="zl" d="M595,172 L648,192" marker-end="url(#za)"/>
+  <path class="zl" d="M120,155 L158,80" marker-end="url(#za)"/><path class="zl" d="M120,165 L158,126" marker-end="url(#za)"/><path class="zl" d="M120,175 L158,182" marker-end="url(#za)"/>
+</svg>
+<figcaption>Figure 1. Three tools, one sanitization policy (red) and one read-only HTTP path (green). Backends are reached directly on loopback, never through the demo's Envoy proxy.</figcaption>
+</figure>
+<p><b>Why shared modules?</b> A security property like "no tool can POST" or "no flag string leaves" is only credible if it lives in one place and is tested once for all tools. Adding a fourth tool means writing a summariser and an allow-list, not new HTTP or filtering code.</p>
+
+<h2>5. Security model: feature-flag isolation</h2>
+<p><b>Threat:</b> the diagnosis agent must find the cause of an injected fault from symptoms. If any tool output contains a flag key, variant or the flag service's behaviour, the agent can "diagnose" by reading the answer. <b>Goal:</b> keep every symptom, remove every reference to the mechanism.</p>
+<table>
+  <tr><th style="width:22%">Layer</th><th>Rule</th><th style="width:30%">Why</th></tr>
+  <tr><td>1 · Inputs</td><td>Refuse any service/operation/text/PromQL mentioning flags, the flag service or a flag key, <b>before</b> a request is made</td><td>Otherwise result counts become an oracle ("how many logs mention <code>cartFailure</code>?")</td></tr>
+  <tr><td>2 · Flag service traffic</td><td>Drop spans/logs from flagd/flagd-ui and any span or log talking to it (<code>flagd</code>, <code>flagservice</code>, <code>ofrep</code>, <code>openfeature</code> in name or attribute values)</td><td>The evaluation calls themselves reveal which flags are consulted</td></tr>
+  <tr><td>3 · Flag attributes/events</td><td>Remove <code>feature_flag.*</code>, <code>demo.feature_flag.*</code>, <code>shipping.feature_flag.*</code>, <code>feature_flag_key</code>… at any depth; drop events named after flags</td><td>They carry key, variant and value</td></tr>
+  <tr><td>4 · Text</td><td>Replace any flag-revealing string <b>as a whole</b> with <code>[redacted]</code> (label sets in Prometheus messages are redacted individually)</td><td>"…due to [redacted]" would still reveal the cause</td></tr>
+  <tr><td>5 · Logs vs spans</td><td>Logs whose message/event concerns flags are <b>dropped</b> (narration); organic error logs carrying flag text only in an attribute value are <b>kept, value redacted</b>. Spans are kept and stripped.</td><td>Keep symptoms (frontend HTTP 500, payment errors), drop the narration</td></tr>
+  <tr><td>6 · Server side</td><td>OpenSearch <code>must_not</code> excludes the same records inside the query</td><td>Counts/aggregations stay consistent with the records shown</td></tr>
+  <tr><td>7 · Final scrub</td><td><code>scrub_output()</code> walks every result: drops flag-named keys, redacts strings</td><td>Defence in depth against bugs in layers 2–6</td></tr>
+</table>
+<div class="callout ok"><b>Verified on real faults</b>From 20:50 to 20:59 UTC on 20 Nov 2026, <code>productCatalogFailure</code>, <code>paymentFailure=50%</code>, <code>adManualGc</code> and <code>intlShippingSlowdown=5sec</code> were active. The raw product-catalog Jaeger response contained <code>feature_flag</code> 175× and <code>productCatalogFailure</code> 20×; the raw logs contained the ad and shipping narration verbatim. Every tool output contained <b>0</b> flag mentions, while still showing payment error ratio 0 → 0.5, <code>payment :: charge</code> and <code>product-catalog :: GetProduct</code> as error origins, product <code>OLJCESPC7Z</code>, frontend HTTP 500s and the ad service's GC pauses ("artificially triggered GCs took: 1016 ms").</div>
+<div class="callout warn"><b>Residual risks (accepted, D-210)</b>Aggregate volumes that include flag-evaluation work still move slightly; pattern matching is heuristic (re-record fault fixtures after demo upgrades); flagd and other services remain on random 0.0.0.0 host ports upstream, so the future agents must not receive a generic HTTP or shell tool.</div>
+
+<h2 class="page-break">6. <code>search_logs</code> (OpenSearch)</h2>
+<pre><code>search_logs(service=None, level=None, text=None, minutes=15, limit=20, trace_id=None) -&gt; dict</code></pre>
+<table>
+  <tr><th style="width:22%">Parameter</th><th>Meaning / validation</th></tr>
+  <tr><td><code>service</code></td><td>Exact <code>resource.service.name</code> (≤ 100 chars)</td></tr>
+  <tr><td><code>level</code></td><td>Minimum severity: trace, debug, info, warn, error, fatal (aliases: warning, information, critical; any case)</td></tr>
+  <tr><td><code>text</code></td><td>All words must appear in the message: <code>match</code> query with <code>operator: and</code> (never <code>query_string</code>, so no query-syntax injection)</td></tr>
+  <tr><td><code>minutes</code>, <code>limit</code></td><td>1–10080; 1–100 recent records returned</td></tr>
+  <tr><td><code>trace_id</code></td><td>32 hex chars: logs of one trace (correlation with <code>get_traces</code>)</td></tr>
+</table>
+<p><b>Request:</b> <code>GET /otel-logs-*/_search?ignore_unavailable=true&amp;allow_no_indices=true</code> with a JSON body (OpenSearch accepts bodies on GET, so the package stays GET-only): time range on <code>observedTimestamp</code>; filters; <code>must_not</code> exclusions; sort newest first; <code>size</code> 200 (pattern sample); aggregations <code>by_service</code>, <code>by_level</code> (a <code>filters</code> aggregation using the same number-or-text rule), <code>first_seen</code>/<code>last_seen</code>; <code>_source</code> limited to the fields used.</p>
+<p><b>Output:</b> <code>total_matches</code>, <code>first_seen</code>, <code>last_seen</code>, <code>by_service</code>, <code>by_level</code> (records without severity counted as <code>unspecified</code>), <code>patterns</code> (up to 10, most severe then most frequent, with timestamps/UUIDs/hex/product IDs/numbers collapsed, example message, count, first/last seen, up to 3 trace IDs), <code>records</code> (time, service, level, message ≤ 300 chars, event name, trace ID, up to 8 useful attributes), <code>truncated</code>.</p>
+
+<h2>7. <code>get_traces</code> (Jaeger)</h2>
+<pre><code>get_traces(service=None, operation=None, errors_only=False, minutes=15, limit=10,
+           min_duration_ms=None, trace_id=None) -&gt; dict</code></pre>
+<p><b>Requests:</b> <code>GET /api/traces?service&amp;operation&amp;start&amp;end(µs)&amp;limit(2×)&amp;tags={"error":"true"}&amp;minDuration=Nms</code>, or <code>GET /api/traces/&lt;16–32 hex&gt;</code>. Over-fetching 2× compensates for traces that sanitization removes.</p>
+<p><b>Per trace:</b> <code>trace_id</code>, <code>start</code>, <code>duration_ms</code> (over visible spans, so flagd's 600 s EventStreams no longer inflate it), <code>root_service</code>/<code>root_operation</code>, <code>span_count</code>, <code>services</code>, <code>error_span_count</code>, <code>failed_services</code>, <code>error_origins</code>, <code>relevant_spans</code> (≤ 5; ≤ 15 for a single trace), and <code>incomplete</code> when spans are still arriving.</p>
+<p><b>Summary:</b> trace and error-trace counts, <code>incomplete_trace_count</code>, duration min/p50/p95/max/mean (nearest-rank percentiles), failed services, error origins and root operations, each counted.</p>
+<table>
+  <tr><th style="width:24%">Concept</th><th>Definition and why</th></tr>
+  <tr><td>Error origin</td><td>An error span with no failing descendant. Errors propagate <i>up</i> the call chain (payment → checkout → frontend → proxy), so the deepest failing span is the best first guess at where the fault lives.</td></tr>
+  <tr><td>Self time</td><td>Span duration minus the <b>union</b> of its children's intervals. Total duration always favours the root and proxy hops; self time shows where time is actually spent (live example: <code>email send_email</code>, 10.6 ms of 11.1 ms).</td></tr>
+  <tr><td>Error re-evaluation</td><td>Jaeger's <code>error=true</code> matches traces with <i>any</i> error span. After sanitization, a trace whose only errors were flagd spans is not an error trace. A trace made only of flagd traffic disappears entirely.</td></tr>
+  <tr><td>Incomplete</td><td>Raw spans referencing parents Jaeger has not received yet (counted <i>before</i> sanitization, so removed flag spans don't trigger it). Found in a recording made seconds after the requests: 45 spans, 9 dangling parents, origins one level too high.</td></tr>
+</table>
+
+<h2>8. <code>query_metrics</code>: integration and changes</h2>
+<ul>
+  <li>Now uses <code>_http.get_json</code> and <code>filters</code>; its guard additionally refuses flag key names and <code>ofrep</code>; its output passes through <code>scrub_output</code>.</li>
+  <li><b>Signature change:</b> the test-only <code>client: httpx.Client</code> parameter is gone, because an agent framework would expose it to the LLM. Now <code>query_metrics(promql, minutes, max_series=20)</code>, with <code>max_series</code> bounded 1–200.</li>
+  <li>The refusal message is neutral ("This query targets restricted telemetry and is not permitted.") and no longer contains the words "feature flags".</li>
+  <li>Redaction is stricter: if flag text remains outside a label set, the whole message is withheld.</li>
+  <li>All 79 original metrics tests still pass after a mechanical migration.</li>
+</ul>
+
+<h2 class="page-break">9. Code walkthrough</h2>
+<h3>9.1 The single network path (<code>_http.get_json</code>, condensed)</h3>
+<pre><code>def get_json(*, base_url, path, allowed, timeout, params=None, json_body=None, max_bytes=..., backend=...):
+    if not allowed(path):
+        raise ToolError("internal", f"Path {path!r} is not allow-listed.")
+    content = json.dumps(json_body).encode() if json_body is not None else None
+    try:
+        with make_client(base_url, timeout) as client:           # trust_env=False, no redirects
+            with client.stream("GET", path, params=params, content=content, headers=...) as resp:
+                ...                                               # abort beyond max_bytes
+    except httpx.TimeoutException:   raise ToolError("timeout", ...)
+    except httpx.TransportError:     raise ToolError("connection", f"Cannot reach {backend} at {safe_url(base_url)}")
+    except httpx.HTTPError:          raise ToolError("http_error", ...)      # e.g. corrupt gzip
+    except httpx.InvalidURL:         raise ToolError("configuration", ...)
+    return status, json.loads(raw)  # or the decoded text</code></pre>
+
+<h3>9.2 Span sanitization (<code>filters.sanitize_span</code>, condensed)</h3>
+<pre><code>if (is_restricted_service(span["service"])                    # flagd, flagd-ui
+        or _touches_flag_service(span["operation"])          # flagd.evaluation..., router flagservice egress
+        or mentions_flags(span["operation"])
+        or any(_touches_flag_service(v) for v in attributes.values())):   # server.address=flagd, OFREP URL
+    return None
+clean["attributes"] = sanitize_attributes(attributes)        # drop feature_flag.* keys, redact values
+clean["events"] = [e for e in events if not _event_is_flag_related(e)]  # feature_flag.evaluation, ...
+clean["status_message"] = redact_text(span["status_message"])            # whole string -&gt; [redacted]</code></pre>
+
+<h3>9.3 Server-side exclusion in the log query</h3>
+<pre><code>"must_not": [
+  {"terms": {"resource.service.name.keyword": ["flagd", "flagd-ui"]}},
+  {"query_string": {"query": "*flagd* OR *flagservice* OR *ofrep* OR *openfeature* OR *featureflag* OR "
+                             "*feature_flag* OR \"feature flag\" OR adFailure OR ... OR recommendationCacheFailure",
+                    "fields": ["body", "eventName"], "analyze_wildcard": true}},
+  {"query_string": {"query": "_exists_:attributes.feature_flag*"}}]</code></pre>
+<p class="muted">Tested live before use: 140 flag-related records matched the pattern; after <code>must_not</code>, 0 remained.</p>
+
+<h3>9.4 Error origins and self time (<code>traces._summarise_trace</code>)</h3>
+<pre><code>error_spans = [s for s in spans if s["error"]]
+origins     = [s for s in error_spans if not has_error_below(s["span_id"], set())]
+self_time   = {s["span_id"]: _self_time_us(s, children[s["span_id"]]) for s in spans}
+candidates  = origins + error_spans + sorted(spans, key=lambda s: self_time[s["span_id"]], reverse=True)
+
+def _self_time_us(span, kids):   # duration minus the union of child intervals clipped to the span
+    ...                          # sort intervals, merge overlaps, subtract covered time</code></pre>
+
+<h3>9.5 Never raising</h3>
+<pre><code>try:
+    result = _search(base, ...)
+except _http.ToolError as exc:
+    result = _http.error(base, exc.type, exc.message)
+except Exception as exc:     # last resort: a malformed payload must not crash the caller
+    result = _http.error(base, "internal", f"Unexpected {type(exc).__name__} while processing the request.")
+return filters.scrub_output(result)</code></pre>
+
+<h2 class="page-break">10. Examples (real output)</h2>
+<p>Full outputs are in <code>docs/assets/phase-1b/examples.txt</code>. Fault-state outputs are the final code replaying the recordings from 20:50–20:59 UTC.</p>
+<table>
+  <tr><th style="width:44%">Call</th><th style="width:16%">Raw → output</th><th>Key result</th></tr>
+  <tr><td><code>get_traces(service="checkout", errors_only=True, minutes=5, limit=4)</code></td><td>889.8 → 11.1 KiB</td><td>4/4 error traces, 1 incomplete; origins <code>payment :: charge</code> ×3; p50 46.7 ms, p95 63.2 ms; 0 leaks</td></tr>
+  <tr><td><code>get_traces(service="product-catalog", errors_only=True, minutes=5, limit=3)</code></td><td>198.0 → 7.7 KiB</td><td>origin <code>product-catalog :: GetProduct</code> ×3; status <code>[redacted]</code>; <code>demo.product.id = OLJCESPC7Z</code> kept</td></tr>
+  <tr><td><code>search_logs(level="warn", minutes=5, limit=6)</code></td><td>39.8 → 4.6 KiB</td><td>14 matches = 14 records; frontend "API request failed" ×6 (exception message redacted), payment "Payment request failed. Invalid token…" ×6</td></tr>
+  <tr><td><code>search_logs()</code> over raw unexcluded fault records</td><td>87.3 → 4.4 KiB</td><td>ad and shipping narration dropped; organic errors kept; 0 leaks</td></tr>
+  <tr><td><code>query_metrics(error ratio per service, 15)</code></td><td>4.0 → 2.0 KiB</td><td>payment latest 0.5, trend increasing</td></tr>
+  <tr><td><code>get_traces(service="fraud-detection", errors_only=True, minutes=60)</code> (live)</td><td>—</td><td><code>no_data</code>: its only "errors" were flagd EventStream timeouts</td></tr>
+  <tr><td><code>search_logs(service="flagd")</code></td><td>—</td><td><code>forbidden_query</code>, no request sent</td></tr>
+</table>
+<h3>A failing checkout trace, as the tool returns it (abridged)</h3>
+<pre><code>{"trace_id": "64ba961ca4ff1359b9ab9387c97b28b9", "duration_ms": 36.702, "span_count": 82,
+ "root_service": "load-generator", "root_operation": "user_checkout_multi",
+ "failed_services": ["checkout", "frontend", "frontend-proxy", "load-generator", "payment"],
+ "error_origins": [{"service": "payment", "operation": "charge"}],
+ "relevant_spans": [
+   {"service": "payment", "operation": "charge", "kind": "internal", "duration_ms": 1.224, "self_time_ms": 1.224,
+    "error": true, "error_origin": true,
+    "status_message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+    "exception": {"type": "Error", "message": "Payment request failed. Invalid token. ..."},
+    "attributes": {"error.type": "Error", "demo.user_context.loyalty_level": "gold"}},
+   {"service": "checkout", "operation": "oteldemo.CheckoutService/PlaceOrder", "error": true,
+    "status_message": "failed to charge card: could not charge the card: rpc error: code = Unknown desc = ..."}, ...]}</code></pre>
+<h3>Live normal-state log summary (abridged)</h3>
+<pre><code>search_logs(minutes=10, limit=3) -&gt; total_matches 22502; by_service {"frontend-proxy": 9980, "product-catalog": 3373,
+  "frontend": 2228, ...}; patterns: product-catalog info "Product Found" ×27, frontend info "API request completed" ×23,
+  recommendation info "Receive ListRecommendations for product ids:['&lt;id&gt;', ...]" ×12, ...</code></pre>
+
+<h2 class="page-break">11. Testing</h2>
+<h3>Strategy</h3>
+<ul>
+  <li><b>Network blocked by default.</b> An autouse fixture replaces <code>_http.make_client</code> with a transport that fails the test, and clears all copilot environment variables, so unit tests can't depend on the developer's shell.</li>
+  <li><b>Fixtures from the real tools.</b> <code>record_tool_fixtures.py</code> runs each tool through a recording transport and stores the exact request and the raw response. <b>Raw</b> recordings bypass server-side exclusions to prove the client-side defences.</li>
+  <li><b>Real faults.</b> Fault-state fixtures were recorded with four flags active (D-207).</li>
+  <li><b>Invariants over the whole corpus.</b> No flag text in any output (the corpus itself is checked to contain flag data, so the test can't pass vacuously); exactly one GET per call; strict JSON; never raising on hostile input; ADK-ready signatures.</li>
+  <li><b>Live tests</b> auto-skip per backend; they include trace → logs correlation and a leak sweep across 15 services (48 tool calls).</li>
+</ul>
+<table>
+  <tr><th style="width:28%">File</th><th style="width:9%">Tests</th><th>Covers</th></tr>
+  <tr><td><code>test_metrics.py</code></td><td>79</td><td>Original suite, migrated to the new injection point</td></tr>
+  <tr><td><code>test_filters.py</code></td><td>68</td><td>Predicates on real demo strings, redaction, span/log/series policy, no input mutation, flag list = <code>demo.flagd.json</code></td></tr>
+  <tr><td><code>test_logs.py</code></td><td>63</td><td>Query DSL, GET-with-body request, env config, summaries, epoch timestamps, levels, raw leaks, fault narration, errors, validation</td></tr>
+  <tr><td><code>test_traces.py</code></td><td>45</td><td>Request params (µs, over-fetch, tags), allow-list, summaries, flagd-only errors, fault origins, incomplete traces, self time, percentiles</td></tr>
+  <tr><td><code>test_security.py</code></td><td>87</td><td>Leak and GET invariants over all 30 fixtures, AST import check, write-verb scan, hostile-input fuzz, ADK readiness, review fixes</td></tr>
+  <tr><td><code>test_metrics_live.py</code> + <code>test_tools_live.py</code></td><td>4 + 6</td><td>Real backends</td></tr>
+</table>
+<pre><code>$ .venv/bin/python -m pytest -q                         # demo running
+352 passed in 3.17s
+$ PROMETHEUS_URL=http://127.0.0.1:9 OPENSEARCH_URL=http://127.0.0.1:9 JAEGER_URL=http://127.0.0.1:9/jaeger/ui \
+  .venv/bin/python -m pytest -q                         # backends unreachable
+342 passed, 10 skipped</code></pre>
+<h3>Failures found while building, and their causes</h3>
+<table>
+  <tr><th style="width:40%">Failure</th><th>Cause → fix</th></tr>
+  <tr><td>Recorder: <code>DecodingError: incorrect header check</code></td><td>Re-served an already-decoded body with <code>Content-Encoding: gzip</code> → drop encoding headers</td></tr>
+  <tr><td>Count/record mismatch (19 matches, 8 records) under fault</td><td>Organic frontend errors dropped client-side for flag text in <code>exception.message</code> → keep, redact value (D-209)</td></tr>
+  <tr><td>"Expected trace kept" test failed</td><td>Test assumption: the trace was <i>only</i> flagd traffic, so it correctly vanishes → test corrected</td></tr>
+  <tr><td>Raw fixture lacked shipping flag events</td><td>No international shipment since the index reset → re-recorded after the fault window</td></tr>
+  <tr><td>Hermetic run: 2 failures on default URLs</td><td>Tests read the developer's env → autouse fixture clears config variables</td></tr>
+  <tr><td>Fuzz test hit the network blocker</td><td>Valid inputs legitimately reach the transport → failing transport in that test</td></tr>
+</table>
+
+<h2>12. Final security and correctness review</h2>
+<table>
+  <tr><th style="width:36%">Finding</th><th>Fix (each has a test)</th></tr>
+  <tr><td><code>httpx.DecodingError</code>/<code>InvalidURL</code> could escape (not <code>TransportError</code>)</td><td>Mapped to <code>http_error</code>/<code>configuration</code></td></tr>
+  <tr><td>A malformed but valid-JSON payload could raise during parsing</td><td>Last-resort <code>internal</code> error in every tool</td></tr>
+  <tr><td><code>user:pass@</code> in a URL would appear in error messages</td><td><code>safe_url()</code> strips credentials</td></tr>
+  <tr><td><code>error.type</code> attribute dropped by a prefix match on <code>error</code></td><td>Exact-key set for internal tags</td></tr>
+  <tr><td>Whole <code>resource</code> (~40 fields) fetched per log record</td><td><code>_source</code> limited to <code>resource.service.name</code> (verified live)</td></tr>
+  <tr><td>Partial traces gave misleading origins</td><td><code>incomplete</code> flag + summary count</td></tr>
+  <tr><td><code>make start</code> would undo the overlay</td><td><code>scripts/start_demo.sh</code> (overlay-only mode verified idempotent)</td></tr>
+</table>
+<p><b>Confirmed properties:</b> only <code>_http.py</code> imports httpx (AST test); no write verbs in the package; user text never enters a query language that can change semantics (OpenSearch <code>match</code>; Jaeger query parameters URL-encoded by httpx; PromQL is read-only by API); response caps 10 MiB (Prometheus, OpenSearch) and 32 MiB (Jaeger).</p>
+
+<h2 class="page-break">13. Troubleshooting</h2>
+<table>
+  <tr><th style="width:38%">Symptom</th><th>Cause → fix</th></tr>
+  <tr><td><code>connection</code> error for logs or traces</td><td>Overlay not applied (random ports again after <code>make start</code>) → <code>scripts/start_demo.sh --overlay</code>; check <code>docker port opensearch</code> shows <code>127.0.0.1:9200</code></td></tr>
+  <tr><td><code>get_traces</code> → <code>invalid_input</code> "service is required"</td><td>Jaeger searches per service → pass <code>service</code>, or <code>trace_id</code></td></tr>
+  <tr><td><code>get_traces</code> → <code>no_data</code> for a trace ID from an older log</td><td>Jaeger keeps traces in memory (lost on restart, capped by <code>MEMORY_MAX_TRACES</code>)</td></tr>
+  <tr><td>Error origins look too high (e.g. a proxy)</td><td>Check <code>incomplete</code>: spans still arriving. Query again a few seconds later.</td></tr>
+  <tr><td><code>errors_only</code> returns nothing although Jaeger UI shows red traces</td><td>Those errors were flagd spans, which are intentionally invisible</td></tr>
+  <tr><td><code>search_logs(level="error")</code> misses Envoy access logs</td><td>Envoy logs have no severity (<code>unspecified</code>) → search by service/text instead</td></tr>
+  <tr><td>Shipping/currency logs seem to have wrong times</td><td>Their <code>@timestamp</code> is 1970 → the tool shows <code>observedTimestamp</code></td></tr>
+  <tr><td><code>forbidden_query</code> for an innocent search</td><td>The text matched a flag term or key (e.g. "adFailure") → rephrase around the symptom</td></tr>
+  <tr><td><code>bad_query</code> from OpenSearch</td><td>Usually a misconfigured index pattern or mapping → check <code>OPENSEARCH_LOGS_INDEX</code></td></tr>
+  <tr><td>Field shows <code>[redacted]</code></td><td>By design: the original text revealed fault-injection details</td></tr>
+  <tr><td>Fault still active after restoring <code>demo.flagd.json</code></td><td>flagd syncs on mtime → <code>touch</code> the file, then verify errors stop (D-207)</td></tr>
+  <tr><td>Unit tests fail with "unexpected network call"</td><td>A test reached the network without <code>replay(...)</code>/<code>failing(...)</code>, which is intended</td></tr>
+</table>
+
+<h2>14. Interview questions</h2>
+<dl class="qa">
+<dt>1. Why centralise HTTP and sanitization instead of writing them per tool?</dt>
+<dd>Security properties need one enforcement point. "Only GET" is a single allow-listed function, and "no flag strings" is one policy plus a final scrub. Both are tested once for all tools, with AST and corpus-wide invariant tests.</dd>
+<dt>2. How do you make a tool read-only when OpenSearch search normally uses POST?</dt>
+<dd>OpenSearch accepts a request body on <code>GET _search</code>. Using it keeps the whole package GET-only, which a test enforces by scanning for write verbs.</dd>
+<dt>3. Why redact whole strings rather than just the flag words?</dt>
+<dd>"Delaying international shipment due to [redacted] [redacted]" still tells the agent the cause is a deliberate toggle. Whole-string replacement removes the mechanism and keeps the structural symptom (error status, timing).</dd>
+<dt>4. Why drop some logs but keep spans?</dt>
+<dd>A span is a unit of real work whose timing and status are organic symptoms. A log that talks about a flag is narration of the injection. Organic error logs that merely carry flag text in an attribute are kept with that value redacted, which also keeps counts consistent.</dd>
+<dt>5. What is a counting side channel and how did you close it?</dt>
+<dd>If hidden records are still counted, totals reveal them (19 matches but 8 shown). Fix: exclude the same records inside the OpenSearch query, refuse flag-related inputs, and never report how many items were hidden.</dd>
+<dt>6. How do you identify where an error originated in a trace?</dt>
+<dd>Errors propagate upward, so the deepest error span with no failing descendant is the origin. It is only reliable on complete traces, so the tool flags traces whose spans reference parents that haven't arrived yet.</dd>
+<dt>7. What is self time, and why rank by it?</dt>
+<dd>Duration minus the union of child intervals. A parent's total duration always includes its children, so ranking by duration always surfaces the root; self time surfaces the span actually doing work.</dd>
+<dt>8. Why query Jaeger directly instead of through the demo's proxy?</dt>
+<dd>Envoy traces every request, so the copilot's own queries would appear as frontend-proxy traffic, which is the observer affecting the observed. Direct loopback access avoids it.</dd>
+<dt>9. Why did <code>@timestamp</code> break time filtering, and what did you use instead?</dt>
+<dd>Rust and C++ SDK logs arrived without a timestamp, so it defaulted to the epoch. <code>observedTimestamp</code> is set by the Collector on receipt and is always present.</dd>
+<dt>10. How do you prove a sanitizer works, rather than hope?</dt>
+<dd>Record real data while faults are active, keep raw recordings that bypass server-side filters, assert the corpus really contains flag data, then assert that every tool output over every fixture contains none. Repeat live across all services.</dd>
+<dt>11. How do you keep tests hermetic yet realistic?</dt>
+<dd>Block the network and clear the environment by default; replay recorded responses at the transport layer while capturing outgoing requests; add live tests that skip when backends are absent.</dd>
+<dt>12. Why do tool signatures matter before any agent exists?</dt>
+<dd>Frameworks like Google ADK generate tool schemas from signatures and docstrings. A <code>client</code> parameter would be shown to the LLM, and complex types break schema generation. A test now enforces simple types and documented parameters.</dd>
+<dt>13. What would you change for production?</dt>
+<dd>Enforce isolation at a telemetry gateway in front of all stores (not only per tool), authenticated backends, connection pooling and caching, retries with backoff for idempotent 503s, and metrics about the tools themselves.</dd>
+<dt>14. What did the fault-injection exercise teach you about operations?</dt>
+<dd>Configuration reload mechanisms matter: flagd syncs on modification time, so restoring a file with its old mtime left faults active silently. A fault harness must verify behaviour, not just file content.</dd>
+</dl>
+
+<h2>15. Limitations, files and next steps</h2>
+<ul>
+  <li>Pattern grouping uses a 200-record sample, so counts per pattern are sample counts (totals come from OpenSearch).</li>
+  <li>Error origins are a heuristic (deepest failing span). Asynchronous Kafka paths may appear as separate traces.</li>
+  <li>Text-pattern sanitization must be re-validated after demo upgrades (<code>record_tool_fixtures.py fault</code>).</li>
+  <li>No Git commit was made: the project root is still not a Git repository (D-110, D-210).</li>
+</ul>
+<table>
+  <tr><td><code>copilot/tools/{_http,filters,metrics,logs,traces,__init__}.py</code></td><td>The tool layer</td></tr>
+  <tr><td><code>tests/</code> (7 files) and <code>tests/fixtures/{prometheus,opensearch,jaeger}/</code></td><td>352 tests, 30 recordings</td></tr>
+  <tr><td><code>scripts/start_demo.sh</code>, <code>scripts/record_tool_fixtures.py</code>, <code>deploy/compose.copilot.yaml</code></td><td>Operations</td></tr>
+  <tr><td><code>README.md</code>, <code>DECISIONS.md</code> (D-201…D-210)</td><td>Documentation</td></tr>
+  <tr><td><code>docs/phase-1-observability-tools.pdf</code>, <code>docs/src/…html</code>, <code>docs/assets/phase-1b/examples.txt</code></td><td>This document and its evidence</td></tr>
+</table>
+<p><b>Next:</b> a telemetry gateway for system-wide isolation; baseline capture of normal behaviour (including known noise such as the chatbot <code>/prompt</code> errors); a fault-injection harness outside the agents' reach that advances the flag file's mtime and verifies effects; then the first investigation agent built on <code>TOOLS</code>.</p>
+
+</body>
+</html>

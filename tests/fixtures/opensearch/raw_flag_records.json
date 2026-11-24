@@ -1,0 +1,1203 @@
+{
+ "description": "RAW: flag-related records the server-side exclusion normally removes (Envoy /flagservice access logs, shipping.feature_flag.evaluated events).",
+ "recorded_at": "2026-11-20T21:03:59+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/otel-logs-*/_search",
+  "params": {},
+  "json_body": {
+   "size": 30,
+   "track_total_hits": true,
+   "sort": [
+    {
+     "observedTimestamp": {
+      "order": "desc"
+     }
+    }
+   ],
+   "query": {
+    "bool": {
+     "should": [
+      {
+       "query_string": {
+        "query": "*flagservice*",
+        "fields": [
+         "body"
+        ],
+        "analyze_wildcard": true
+       }
+      },
+      {
+       "term": {
+        "eventName.keyword": "shipping.feature_flag.evaluated"
+       }
+      }
+     ],
+     "minimum_should_match": 1
+    }
+   },
+   "collapse": {
+    "field": "resource.service.name.keyword",
+    "inner_hits": {
+     "name": "more",
+     "size": 10
+    }
+   }
+  }
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json; charset=UTF-8",
+  "body": {
+   "took": 388,
+   "timed_out": false,
+   "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+   },
+   "hits": {
+    "total": {
+     "value": 778,
+     "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "erbF-qEBmPE3-RMx7Vpl",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "destination.address": "172.20.0.10",
+        "event.name": "proxy.access",
+        "server.address": "172.20.0.29:8080",
+        "source.address": "172.20.0.28",
+        "upstream.cluster": "flagservice",
+        "upstream.host": "172.20.0.10:8013",
+        "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+        "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+        "url.query": "-",
+        "url.template": "-",
+        "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+       },
+       "body": "[2026-11-20T21:03:56.752Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"a2f42b45-34c0-9c71-b9c3-3f0e2e915ef3\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:42002 172.20.0.29:8080 172.20.0.28:41060 - -\n",
+       "instrumentationScope": {},
+       "observedTimestamp": "2026-11-20T21:03:57.794997634Z",
+       "resource": {
+        "cluster_name": "",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "log_name": "otel_envoy_access_log",
+        "node_name": "",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "service.name": "frontend-proxy",
+        "service.namespace": "opentelemetry-demo",
+        "zone_name": ""
+       },
+       "severity": {},
+       "spanId": "26d4316ae29188df",
+       "@timestamp": "2026-11-20T21:03:56.752109Z",
+       "traceId": "49bc53b49822e632f049278c27fe8da9"
+      },
+      "fields": {
+       "resource.service.name.keyword": [
+        "frontend-proxy"
+       ]
+      },
+      "sort": [
+       1795208637794
+      ],
+      "inner_hits": {
+       "more": {
+        "hits": {
+         "total": {
+          "value": 769,
+          "relation": "eq"
+         },
+         "max_score": 1.0,
+         "hits": [
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "cLWx-qEBmPE3-RMxrZYr",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/EventStream",
+             "url.path": "/flagd.evaluation.v1.Service/EventStream",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:47.143Z] \"POST /flagservice/flagd.evaluation.v1.Service/EventStream HTTP/1.1\" 200 DC downstream_remote_disconnect - \"-\" 7 40 3084 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"3d7f0a89-0bc6-9308-ba56-fb128bc261a9\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:55020 172.20.0.29:8080 172.20.0.28:38782 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:50.634408548Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "cc187f68321b7bde",
+            "@timestamp": "2026-11-20T20:41:47.143678Z",
+            "traceId": "7e8fc9134bb3f6fec0fc4a014baa1510"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "frWx-qEBmPE3-RMxrZYr",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+             "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:50.574Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"a1bbacbc-b108-9ade-9e84-d5b18a6434d0\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:44314 172.20.0.29:8080 172.20.0.28:54322 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:50.634529631Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "a5f2495f39d5587a",
+            "@timestamp": "2026-11-20T20:41:50.574037Z",
+            "traceId": "43a81a8b16f118ff51216ea76752c00d"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "7rWx-qEBmPE3-RMxvZZL",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/EventStream",
+             "url.path": "/flagd.evaluation.v1.Service/EventStream",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:50.558Z] \"POST /flagservice/flagd.evaluation.v1.Service/EventStream HTTP/1.1\" 200 DC downstream_remote_disconnect - \"-\" 7 40 3093 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"52e763dc-50a4-999f-8e2f-602cf86eac61\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:44300 172.20.0.29:8080 172.20.0.28:54312 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:54.759604216Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "07456cea221b8a5b",
+            "@timestamp": "2026-11-20T20:41:50.558465Z",
+            "traceId": "f4b5c3b9f208c68df78238b563bf1004"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "A7Wx-qEBmPE3-RMxvZdL",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+             "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:53.997Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 1 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"e26fdb13-bb9f-9b04-9d29-60635451360e\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:44318 172.20.0.29:8080 172.20.0.28:54376 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:54.760142508Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "078971a98edd3b07",
+            "@timestamp": "2026-11-20T20:41:53.997923Z",
+            "traceId": "e7f264fb36350ce56e50cfb329ad866b"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "ZrWx-qEBmPE3-RMxyJf6",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+             "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:57.425Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"0d66e987-a2ab-98e7-ba76-b4a709118b0b\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:44314 172.20.0.29:8080 172.20.0.28:54416 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:57.751742093Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "1a49e4de1113992f",
+            "@timestamp": "2026-11-20T20:41:57.425251Z",
+            "traceId": "ef5bb4f89bae1df0fddf100605fe2c22"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "b7Wx-qEBmPE3-RMxyJf6",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/EventStream",
+             "url.path": "/flagd.evaluation.v1.Service/EventStream",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:53.981Z] \"POST /flagservice/flagd.evaluation.v1.Service/EventStream HTTP/1.1\" 200 DC downstream_remote_disconnect - \"-\" 7 40 3084 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"0131906b-abdf-9ce3-a60b-39f25f0ad1bc\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:44316 172.20.0.29:8080 172.20.0.28:54364 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:41:57.751811093Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "b52e9d8d5c361391",
+            "@timestamp": "2026-11-20T20:41:53.981282Z",
+            "traceId": "ff8e9bed2905faab468c95cd96108fbb"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "_bWx-qEBmPE3-RMx2Jes",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/EventStream",
+             "url.path": "/flagd.evaluation.v1.Service/EventStream",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:41:57.412Z] \"POST /flagservice/flagd.evaluation.v1.Service/EventStream HTTP/1.1\" 200 DC downstream_remote_disconnect - \"-\" 7 40 3248 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"824675fa-6821-9827-92a4-c4a993cc7de0\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:35734 172.20.0.29:8080 172.20.0.28:54400 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:42:01.767578928Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "727db1440d9ce2a1",
+            "@timestamp": "2026-11-20T20:41:57.41222Z",
+            "traceId": "5195c8127cc7c82333724de6c256f56e"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "A7Wx-qEBmPE3-RMx2Jis",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+             "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:42:01.008Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"ffc4ddf1-0685-9d11-a63c-aca303ec27c3\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:58184 172.20.0.29:8080 172.20.0.28:42232 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:42:01.767871136Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "663b2f3147854e1a",
+            "@timestamp": "2026-11-20T20:42:01.008719Z",
+            "traceId": "774922efc9563361b1ef8ccf4778f853"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "YLWx-qEBmPE3-RMx5Jhk",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/EventStream",
+             "url.path": "/flagd.evaluation.v1.Service/EventStream",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:42:00.991Z] \"POST /flagservice/flagd.evaluation.v1.Service/EventStream HTTP/1.1\" 200 DC downstream_remote_disconnect - \"-\" 7 40 3101 0 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"05216219-29c4-9084-9d92-41903ef70c0d\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:40580 172.20.0.29:8080 172.20.0.28:42212 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:42:04.768656054Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "ec38d5eb89fc5780",
+            "@timestamp": "2026-11-20T20:42:00.99142Z",
+            "traceId": "e93e9536917879525a5498dc2be64db0"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "aLWx-qEBmPE3-RMx5Jhk",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "destination.address": "172.20.0.10",
+             "event.name": "proxy.access",
+             "server.address": "172.20.0.29:8080",
+             "source.address": "172.20.0.28",
+             "upstream.cluster": "flagservice",
+             "upstream.host": "172.20.0.10:8013",
+             "url.full": "http://frontend-proxy:8080/flagd.evaluation.v1.Service/ResolveAll",
+             "url.path": "/flagd.evaluation.v1.Service/ResolveAll",
+             "url.query": "-",
+             "url.template": "-",
+             "user_agent.original": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+            },
+            "body": "[2026-11-20T20:42:04.426Z] \"POST /flagservice/flagd.evaluation.v1.Service/ResolveAll HTTP/1.1\" 200 - via_upstream - \"-\" 136 355 1 1 \"-\" \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36\" \"23dbea1a-eb4e-91c4-a469-083c6c9bf70d\" \"frontend-proxy:8080\" \"172.20.0.10:8013\" flagservice 172.20.0.29:58192 172.20.0.29:8080 172.20.0.28:42274 - -\n",
+            "instrumentationScope": {},
+            "observedTimestamp": "2026-11-20T20:42:04.768748888Z",
+            "resource": {
+             "cluster_name": "",
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "log_name": "otel_envoy_access_log",
+             "node_name": "",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "service.name": "frontend-proxy",
+             "service.namespace": "opentelemetry-demo",
+             "zone_name": ""
+            },
+            "severity": {},
+            "spanId": "193c58bcfb21449c",
+            "@timestamp": "2026-11-20T20:42:04.426216Z",
+            "traceId": "3a558c1c5737ab51b47b4cc84e20c3cd"
+           }
+          }
+         ]
+        }
+       }
+      }
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "G7bF-qEBmPE3-RMxJFPc",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "feature_flag_key": "intlShippingSlowdown",
+        "feature_flag_provider_name": "flagd",
+        "feature_flag_variant": "off"
+       },
+       "body": "",
+       "eventName": "shipping.feature_flag.evaluated",
+       "instrumentationScope": {
+        "name": "shipping::shipping_service"
+       },
+       "observedTimestamp": "2026-11-20T21:03:06.458769389Z",
+       "resource": {
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "process.command_args": "[\"./shipping\"]",
+        "process.pid": "1",
+        "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+        "process.runtime.name": "rustc",
+        "process.runtime.version": "1.98.0",
+        "service.criticality": "high",
+        "service.name": "shipping",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "rust",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "0.32.1"
+       },
+       "severity": {
+        "text": "INFO",
+        "number": 9
+       },
+       "spanId": "164ddb65c4db3390",
+       "@timestamp": "1970-01-01T00:00:00Z",
+       "traceId": "7d7099c7ac30df8b2468af49a46bc19e"
+      },
+      "fields": {
+       "resource.service.name.keyword": [
+        "shipping"
+       ]
+      },
+      "sort": [
+       1795208586458
+      ],
+      "inner_hits": {
+       "more": {
+        "hits": {
+         "total": {
+          "value": 9,
+          "relation": "eq"
+         },
+         "max_score": 1.0,
+         "hits": [
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "XbWz-qEBmPE3-RMx9qz4",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:44:20.597521714Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "dee593980d87f768",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "1a6bc690bb8141dfd1c70aff9c976871"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "CrW0-qEBmPE3-RMxDq1v",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:44:26.605420009Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "fcd8fce605640445",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "3793d8eec04f96a8442a96074fc06b38"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "fbW2-qEBmPE3-RMx5ciU",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:47:32.754768137Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "55dee77bb62c4205",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "8d8bd6aa3a4ea2bfef399f6314858f56"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "6bW7-qEBmPE3-RMxLPE-",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "5sec"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:52:12.989105752Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "0a8b115ed5fec534",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "ebbe4889f2dd652902c729185ee38a33"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "P7a9-qEBmPE3-RMxIAUy",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "5sec"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:54:20.976046215Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "c511b1daa814d596",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "ab20992fd5f3597f3e505d7f6b6f9f22"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "Jba9-qEBmPE3-RMxagjo",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "5sec"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:54:40.103454251Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "737ceadceee70a32",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "72aa92cb2c64539ee73c7c3766b3060d"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "t7bC-qEBmPE3-RMxBzOB",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T20:59:42.336087252Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "ff87a2b170809071",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "2488ba90b17bc92e619cf67e9cf1bc0a"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "2LbC-qEBmPE3-RMxfDfP",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T21:00:12.365098752Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "fe7d9505ec23f12b",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "8e4966cd5e94113f2f0fba48a122ff87"
+           }
+          },
+          {
+           "_index": "otel-logs-2026-11-20",
+           "_id": "G7bF-qEBmPE3-RMxJFPc",
+           "_score": 1.0,
+           "_source": {
+            "attributes": {
+             "data_stream": {
+              "dataset": "default",
+              "namespace": "namespace",
+              "type": "record"
+             },
+             "feature_flag_key": "intlShippingSlowdown",
+             "feature_flag_provider_name": "flagd",
+             "feature_flag_variant": "off"
+            },
+            "body": "",
+            "eventName": "shipping.feature_flag.evaluated",
+            "instrumentationScope": {
+             "name": "shipping::shipping_service"
+            },
+            "observedTimestamp": "2026-11-20T21:03:06.458769389Z",
+            "resource": {
+             "host.arch": "arm64",
+             "host.cpu.cache.l2.size": "0",
+             "host.cpu.family": "",
+             "host.cpu.model.id": "0x000",
+             "host.cpu.model.name": "",
+             "host.cpu.stepping": "0",
+             "host.cpu.vendor.id": "Apple",
+             "host.name": "docker-desktop",
+             "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+             "os.type": "linux",
+             "process.command_args": "[\"./shipping\"]",
+             "process.pid": "1",
+             "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+             "process.runtime.name": "rustc",
+             "process.runtime.version": "1.98.0",
+             "service.criticality": "high",
+             "service.name": "shipping",
+             "service.namespace": "opentelemetry-demo",
+             "service.version": "3.0.0",
+             "telemetry.sdk.language": "rust",
+             "telemetry.sdk.name": "opentelemetry",
+             "telemetry.sdk.version": "0.32.1"
+            },
+            "severity": {
+             "text": "INFO",
+             "number": 9
+            },
+            "spanId": "164ddb65c4db3390",
+            "@timestamp": "1970-01-01T00:00:00Z",
+            "traceId": "7d7099c7ac30df8b2468af49a46bc19e"
+           }
+          }
+         ]
+        }
+       }
+      }
+     }
+    ]
+   }
+  }
+ }
+}

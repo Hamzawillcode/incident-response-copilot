@@ -1,0 +1,30 @@
+{
+ "description": "RAW: /api/traces without service -> HTTP 400.",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/jaeger/ui/api/traces",
+  "params": {
+   "start": "1795206879843055",
+   "end": "1795207779843055",
+   "limit": "1"
+  },
+  "json_body": null
+ },
+ "response": {
+  "status_code": 400,
+  "content_type": "text/plain; charset=utf-8",
+  "body": {
+   "data": null,
+   "total": 0,
+   "limit": 0,
+   "offset": 0,
+   "errors": [
+    {
+     "code": 400,
+     "msg": "parameter 'service' is required"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,20 @@
+# Incident Response Copilot overlay for the OpenTelemetry Demo 3.1.0.
+#
+# Upstream publishes OpenSearch (9200) and Jaeger (16686, 4317) on RANDOM host
+# ports bound to 0.0.0.0, i.e. reachable from the whole LAN without authentication
+# (OpenSearch runs with DISABLE_SECURITY_PLUGIN=true). The copilot's read-only tools
+# need stable URLs, and must query Jaeger directly rather than through Envoy (which
+# would trace the copilot's own queries as frontend-proxy traffic).
+#
+# `!override` REPLACES the upstream port lists instead of appending to them.
+# Apply from opentelemetry-demo/ after `make start`:
+#   docker compose --env-file .env --env-file .env.override \
+#     -f compose.yaml -f compose.full.yaml -f compose.observability.yaml -f compose.extras.yaml \
+#     -f ../deploy/compose.copilot.yaml up -d --no-deps opensearch jaeger
+services:
+  opensearch:
+    ports: !override
+      - "127.0.0.1:9200:9200"     # OPENSEARCH_URL=http://localhost:9200
+  jaeger:
+    ports: !override
+      - "127.0.0.1:16686:16686"   # JAEGER_URL=http://localhost:16686/jaeger/ui

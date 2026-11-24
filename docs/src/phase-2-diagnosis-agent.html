@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 2 — Diagnosis Agent</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; --purple:#6d3fd6; --purple-soft:#f1ebff; --teal:#0f7b75; --teal-soft:#e4f5f3; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.1pt; line-height:1.47; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.4pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  pre.term { background:#141a26; color:#dfe6f3; border-color:#141a26; }
+  pre.term .a { color:#8fb4ff; } pre.term .o { color:#7fd6a4; } pre.term .x { color:#ffcf70; } pre.term .r { color:#ff9b8f; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:8.9pt; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:155mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .ok { color:var(--ok); font-weight:700; }
+  .pending { color:var(--warn); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .qa dt { font-weight:700; margin-top:8pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10pt; }
+  .card { border:1px solid var(--line); border-radius:6px; padding:6pt 9pt; break-inside:avoid; }
+  .card h4 { margin:0 0 3pt; font-size:10pt; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 2 (Week 2)</div>
+  <h1>From tools to a thinking agent</h1>
+  <div class="sub">One Google ADK agent (Gemini) that investigates an alert with our read-only tools and returns a structured diagnosis, two new "golden signal" tools that hide PromQL, and a detector that wakes the agent automatically.</div>
+  <table>
+    <tr><td>Date</td><td>24 November 2026</td></tr>
+    <tr><td>Stack</td><td>Google ADK 2.15.0 · google-genai 2.34.0 · Pydantic 2.14 · Python 3.14 · OpenTelemetry Demo 3.1.0</td></tr>
+    <tr><td>New code</td><td><code>copilot/agents/</code>, <code>copilot/prompts/</code>, <code>copilot/tools/health.py</code>, <code>detector/watcher.py</code>, <code>scripts/run_diagnosis.py</code></td></tr>
+    <tr><td>Tests</td><td><span class="ok">427 passed</span> (414 unit + 13 live against the running demo). No unit test calls Gemini.</td></tr>
+    <tr><td>Verified live</td><td>Health tools and detector on a real <code>paymentFailure=50%</code> fault; the ADK loop with real tool calls, driven by a scripted model</td></tr>
+    <tr><td>Still to measure</td><td><span class="pending">Gemini accuracy.</span> No API key was set during the build, so there is no accuracy number yet (see section 13)</td></tr>
+  </table>
+</section>
+
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>The idea in one minute</li>
+  <li>What we built</li>
+  <li>Architecture</li>
+  <li>How ADK uses our tools (and why not MCP)</li>
+  <li>The ReAct loop in action</li>
+  <li>New tools: <code>get_service_health</code> and <code>get_service_metrics</code></li>
+  <li>The prompt</li>
+  <li>The structured answer</li>
+  <li>Safety rules in the agent</li>
+  <li>The detector (the alarm)</li>
+  <li>Testing an AI agent without calling the AI</li>
+  <li>Bugs and surprises we found</li>
+  <li>Status, how to run it, limitations</li>
+  <li>Interview questions and answers</li>
+</ol>
+
+<h2>1. The idea in one minute</h2>
+<p>In Week 1 we built three <b>hands</b>: <code>query_metrics</code> reads numbers (Prometheus), <code>search_logs</code> reads what services write (OpenSearch), and <code>get_traces</code> follows one request across services (Jaeger). A human called them and decided what was wrong.</p>
+<p>In Week 2 we added a <b>brain</b> and an <b>alarm</b>:</p>
+<ul>
+  <li><b>The brain</b> is a Gemini model inside a Google ADK agent. It decides which tool to call next, reads the result, and repeats until it can name the root cause with evidence.</li>
+  <li><b>The alarm</b> is a small Python program with no AI in it. It watches error ratios and, when a service stays broken for 2 minutes, wakes the brain with an alert.</li>
+</ul>
+<div class="callout"><b>Analogy</b>The tools are the stethoscope and blood test. The agent is the doctor who decides which test to run next. The detector is the heart monitor that beeps and calls the doctor.</div>
+
+<h2>2. What we built</h2>
+<table>
+  <tr><th style="width:32%">File</th><th>What it does</th></tr>
+  <tr><td><code>copilot/agents/diagnosis.py</code></td><td>The ADK <code>LlmAgent</code>, the <code>Diagnosis</code> answer schema, the tool guard, and <code>diagnose(alert)</code>, which runs one investigation and records every step.</td></tr>
+  <tr><td><code>copilot/prompts/diagnosis.md</code></td><td>The agent's job description in plain English: method, PromQL cookbook, evidence rules, answer format. Versioned like code.</td></tr>
+  <tr><td><code>copilot/tools/health.py</code></td><td>Two new read-only tools: an overview of every service and a detail view of one service. Tested PromQL inside, so the model never has to write it.</td></tr>
+  <tr><td><code>detector/watcher.py</code></td><td>The alarm: error ratio above 5 % for 2 minutes produces one alert, then the agent investigates.</td></tr>
+  <tr><td><code>scripts/run_diagnosis.py</code></td><td>Sends an alert to the agent and prints every Think / Act / Observe step; <code>--runs 5</code> shows run-to-run variation.</td></tr>
+  <tr><td><code>copilot/agents/console.py</code></td><td>Prints transcripts and saves each run to <code>runs/*.json</code> (answer, steps, tokens, latency).</td></tr>
+  <tr><td><code>tests/test_agent.py</code>, <code>test_health.py</code>, <code>test_watcher.py</code>, <code>test_health_live.py</code></td><td>75 new tests (427 in total), including a scripted fake model that drives the real ADK loop.</td></tr>
+  <tr><td><code>.env.example</code>, <code>pyproject.toml</code>, <code>.gitignore</code></td><td>Gemini key and model configuration; <code>google-adk</code> and <code>python-dotenv</code> added; <code>.env</code> and <code>runs/</code> never committed.</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>3. Architecture</h2>
+<figure>
+<svg viewBox="0 0 700 372" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6475"/></marker></defs>
+  <!-- observability -->
+  <rect x="10" y="20" width="150" height="180" rx="8" fill="#e4f5f3" stroke="#0f7b75"/>
+  <text x="85" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#0f7b75">Observability</text>
+  <rect x="25" y="55" width="120" height="30" rx="5" fill="#fff" stroke="#0f7b75"/><text x="85" y="74" text-anchor="middle" font-size="11">Prometheus</text>
+  <rect x="25" y="95" width="120" height="30" rx="5" fill="#fff" stroke="#0f7b75"/><text x="85" y="114" text-anchor="middle" font-size="11">Jaeger</text>
+  <rect x="25" y="135" width="120" height="30" rx="5" fill="#fff" stroke="#0f7b75"/><text x="85" y="154" text-anchor="middle" font-size="11">OpenSearch</text>
+  <text x="85" y="188" text-anchor="middle" font-size="9.5" fill="#5b6475">OTel Demo, fault injected</text>
+  <!-- tools -->
+  <rect x="200" y="20" width="200" height="180" rx="8" fill="#eaf0ff" stroke="#2f5bd3"/>
+  <text x="300" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#2f5bd3">Read-only tools</text>
+  <text x="300" y="62" text-anchor="middle" font-size="10.5">get_service_health  <tspan fill="#1f7a45" font-weight="700">new</tspan></text>
+  <text x="300" y="80" text-anchor="middle" font-size="10.5">get_service_metrics  <tspan fill="#1f7a45" font-weight="700">new</tspan></text>
+  <text x="300" y="98" text-anchor="middle" font-size="10.5">get_traces · search_logs</text>
+  <text x="300" y="116" text-anchor="middle" font-size="10.5">query_metrics</text>
+  <rect x="215" y="135" width="170" height="48" rx="5" fill="#fdecea" stroke="#b42318"/>
+  <text x="300" y="155" text-anchor="middle" font-size="10" font-weight="700" fill="#b42318">filters.py + GET-only _http</text>
+  <text x="300" y="171" text-anchor="middle" font-size="9.5" fill="#b42318">no fault-switch data ever passes</text>
+  <!-- agent -->
+  <rect x="440" y="20" width="250" height="180" rx="8" fill="#f1ebff" stroke="#6d3fd6"/>
+  <text x="565" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#6d3fd6">Diagnosis agent (Google ADK)</text>
+  <rect x="455" y="52" width="220" height="30" rx="5" fill="#fff" stroke="#6d3fd6"/><text x="565" y="71" text-anchor="middle" font-size="10.5">LlmAgent + prompt (diagnosis.md)</text>
+  <rect x="455" y="90" width="220" height="30" rx="5" fill="#fff" stroke="#6d3fd6"/><text x="565" y="109" text-anchor="middle" font-size="10.5">Tool guard: allow-list + budget 15</text>
+  <rect x="455" y="128" width="220" height="30" rx="5" fill="#fff" stroke="#6d3fd6"/><text x="565" y="147" text-anchor="middle" font-size="10.5">Output schema: Diagnosis (JSON)</text>
+  <text x="565" y="185" text-anchor="middle" font-size="9.5" fill="#5b6475">ADK runs the think → act → observe loop</text>
+  <!-- gemini -->
+  <rect x="490" y="250" width="150" height="40" rx="8" fill="#fff" stroke="#6d3fd6"/>
+  <text x="565" y="275" text-anchor="middle" font-size="11.5" font-weight="700">Gemini (AI Studio)</text>
+  <!-- detector -->
+  <rect x="200" y="250" width="200" height="60" rx="8" fill="#fff4e5" stroke="#a25a00"/>
+  <text x="300" y="272" text-anchor="middle" font-size="11.5" font-weight="700" fill="#a25a00">Detector (watcher.py)</text>
+  <text x="300" y="290" text-anchor="middle" font-size="9.5">error ratio &gt; 5 % for 2 min → 1 alert</text>
+  <!-- output -->
+  <rect x="10" y="250" width="150" height="60" rx="8" fill="#e8f6ee" stroke="#1f7a45"/>
+  <text x="85" y="272" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1f7a45">On-call engineer</text>
+  <text x="85" y="290" text-anchor="middle" font-size="9.5">reads diagnosis + transcript</text>
+  <!-- arrows -->
+  <line x1="200" y1="110" x2="162" y2="110" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="438" y1="110" x2="402" y2="110" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="565" y1="202" x2="565" y2="248" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="580" y1="248" x2="580" y2="202" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="590" y="222" font-size="9.5" fill="#5b6475">results /</text><text x="590" y="234" font-size="9.5" fill="#5b6475">next call</text>
+  <line x1="300" y1="248" x2="300" y2="202" stroke="#a25a00" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="308" y="228" font-size="9.5" fill="#a25a00">reads metrics</text>
+  <path d="M400,280 C440,280 440,180 452,170" fill="none" stroke="#a25a00" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="408" y="244" font-size="9.5" fill="#a25a00">alert</text>
+  <path d="M470,202 L470,340 L85,340 L85,314" fill="none" stroke="#1f7a45" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="190" y="358" font-size="9.5" fill="#1f7a45">diagnosis (root cause, confidence, evidence)</text>
+</svg>
+<figcaption>Figure 1. Week 2 architecture. The detector and the agent both read telemetry only through the filtered, read-only tool layer. Nothing in this phase can change the system.</figcaption>
+</figure>
+
+<h3>One incident, start to finish (what happens in code)</h3>
+<ol>
+  <li><b>Fault:</b> we set <code>paymentFailure=50%</code>; half of the payment <code>charge</code> calls fail.</li>
+  <li><b>Detector</b> polls every 15 s. Payment and checkout error ratios go above 5 %. After 2 minutes it builds <i>one</i> alert text naming the breaching services.</li>
+  <li><b><code>diagnose(alert)</code></b> creates an ADK session and sends the alert to the agent.</li>
+  <li><b>The agent loops:</b> Gemini asks for a tool, ADK runs the Python function, the result goes back to Gemini, and this repeats (section 5).</li>
+  <li><b>The answer</b> comes back as JSON matching the <code>Diagnosis</code> schema. It is printed and saved to <code>runs/</code> with the full transcript, token count and latency.</li>
+</ol>
+</section>
+
+<section class="page-break">
+<h2>4. How ADK uses our tools (and why not MCP)</h2>
+<p>We pass plain Python functions to the agent. That is all:</p>
+<pre><code>agent = LlmAgent(
+    name="diagnosis",
+    model="gemini-2.5-flash",                       # from $COPILOT_MODEL
+    instruction=lambda ctx: load_prompt("diagnosis"),
+    tools=[get_service_health, get_service_metrics, get_traces, search_logs, query_metrics],
+    output_schema=Diagnosis,                        # final answer must be this JSON
+    before_tool_callback=tool_guard,                # allow-list + budget
+)</code></pre>
+<ol>
+  <li><b>ADK reads each function</b> and wraps it as a <code>FunctionTool</code>: name, type hints and docstring become the tool description Gemini sees. <i>So our Week-1 docstrings are now part of the prompt.</i></li>
+  <li><b>Gemini cannot run code.</b> It replies with a request such as <code>get_traces(service="checkout", errors_only=True)</code>.</li>
+  <li><b>ADK runs our real function</b> in our own Python process. The function makes the GET request to Jaeger, summarises and filters the result.</li>
+  <li><b>ADK sends the result dict back</b> to Gemini, which decides the next step.</li>
+</ol>
+<div class="callout"><b>Why not MCP?</b>MCP (Model Context Protocol) is for tools that live in <i>another</i> process or system, for example a customer's Datadog MCP server. Our tools are in the same Python program, so a direct function call is simpler, faster and easier to test. ADK does support MCP (<code>McpToolset</code>), so exposing <code>copilot/tools</code> as an MCP server is a possible Week-6 extra: the same tool layer could then plug into any MCP client.</div>
+
+<h2>5. The ReAct loop in action</h2>
+<p><b>ReAct</b> = Reason + Act. The agent thinks about what to check, calls a tool, reads the result, and repeats. Below is a real run of the ADK loop against the <b>live demo with <code>paymentFailure=50%</code></b>. The tool calls and results are real. The <i>decisions</i> came from a scripted test model, because no Gemini key was set during the build; Gemini makes the same kind of decisions itself.</p>
+<pre class="term"><span class="x">ALERT</span> error ratio above 5% for at least 2 minutes. Breaching services: checkout, payment.
+
+<span class="a">ACT     get_service_health(minutes=15)</span>
+<span class="o">OBSERVE get_service_health -> ok (4.1 KB)</span>
+          services_with_observations: ["payment", "checkout"]
+          top_services: ["payment: error ratio 35% now vs 50% at window start", "checkout: ..."]
+<span class="a">ACT     get_traces(service='checkout', errors_only=True, minutes=15, limit=5)</span>
+<span class="o">OBSERVE get_traces -> ok (12.0 KB)</span>
+          error_origins: {"payment :: charge": 5}        <span class="muted">&lt;- every failure STARTS in payment</span>
+<span class="a">ACT     get_service_metrics(service='payment', minutes=15)</span>
+<span class="o">OBSERVE get_service_metrics -> ok (0.6 KB)</span>
+          top_operations: ["oteldemo.PaymentService/Charge: error ratio 35% now vs 50% ..."]
+<span class="a">ACT     search_logs(service='payment', level='warn', minutes=15)</span>
+<span class="o">OBSERVE search_logs -> ok (8.8 KB)</span>
+          top_patterns: ["payment/warn: Payment request failed. Invalid token. ... x16"]
+<span class="x">SUBMIT  final answer</span>
+<span class="x">ANSWER</span>  root cause: payment (errors, confidence high)
+        summary: Payment charge calls fail; checkout errors are a downstream symptom.</pre>
+<p><b>How to read it:</b> metrics show <i>that</i> payment and checkout are failing, but both have the <b>same</b> error ratio, so metrics alone cannot say which one is the cause. Traces show <i>where</i> failures start (<code>payment :: charge</code>). Logs show <i>what</i> payment reports. Three signals agree, so confidence is high.</p>
+</section>
+
+<section class="page-break">
+<h2>6. New tools: <code>get_service_health</code> and <code>get_service_metrics</code></h2>
+<h3>Why we added them</h3>
+<p>With only <code>query_metrics</code>, the model would have to write PromQL itself. LLMs often write PromQL that is wrong, for example <code>service</code> instead of <code>service_name</code>, or a missing <code>rate()</code>. Then the tool says <code>no_data</code> and the model may conclude "nothing is wrong". So we wrapped three <b>tested</b> queries (the "golden signals") behind simple parameters.</p>
+<table>
+  <tr><th>Signal</th><th>PromQL inside (simplified)</th></tr>
+  <tr><td>Traffic (req/s)</td><td><code>sum by (service_name) (rate(traces_span_metrics_calls_total{span_kind=~"SERVER|CONSUMER"}[2m]))</code></td></tr>
+  <tr><td>Error ratio (%)</td><td><code>100 * (errors or 0 * total) / total</code>; the <code>or 0 * total</code> gives healthy services an explicit 0 % instead of a gap</td></tr>
+  <tr><td>p95 latency (ms)</td><td><code>histogram_quantile(0.95, sum by (le, service_name) (rate(..._duration_milliseconds_bucket[2m])))</code></td></tr>
+</table>
+<h3>Example: one row of the real output (payment fault on)</h3>
+<pre><code>{"service": "payment",
+ "requests_per_sec": {"now": 0.042, "window_start": 0.058, "max": 0.067},
+ "error_pct":        {"now": 50.0,  "window_start": 70.8,  "max": 100.0},
+ "p95_ms":           {"now": 2.8,   "window_start": 2.9,   "max": 9.7},
+ "observations": ["error ratio 50% now vs 70.8% at window start"]}</code></pre>
+<ul>
+  <li><b>now / window_start</b> = median of the last / first quarter of the window. Medians stop one noisy sample from changing the picture.</li>
+  <li><b>observations</b> are plain comparisons such as "error ratio 50% now vs 0% at window start". They describe <i>symptoms</i>; they never name a cause.</li>
+  <li><b>Only SERVER and CONSUMER spans are counted</b>, so each service is measured on the work it receives, and the load generator (client spans only) drops out.</li>
+  <li><b>Unhealthy services come first</b>, and the whole overview is about 4 KB instead of hundreds of raw series.</li>
+  <li><code>get_service_metrics("payment")</code> shows the same signals per <b>operation</b>, here <code>oteldemo.PaymentService/Charge</code>.</li>
+  <li>Both are wrappers around <code>query_metrics</code>, so they inherit its read-only HTTP path, flag filters and "never raise" contract. <code>flagd</code> as a service name is refused.</li>
+</ul>
+
+<h2>7. The prompt (<code>copilot/prompts/diagnosis.md</code>)</h2>
+<div class="two">
+  <div class="card"><h4>Method</h4>1. Overview with <code>get_service_health</code>. 2. Symptom vs. cause: follow traces, read <code>error_origins</code>. 3. Confirm in the suspect (metrics per operation, logs). 4. Check timing. 5. Stop after ~12 calls.</div>
+  <div class="card"><h4>Lessons from Week 1</h4>Search logs with <code>level="warn"</code>, not <code>"error"</code>: payment logs its failures as <b>warnings</b>, so <code>"error"</code> returns nothing during a real incident.</div>
+  <div class="card"><h4>PromQL cookbook</h4>Exact queries to copy for raw <code>query_metrics</code> calls, with correct label names and <code>[2m]</code> windows.</div>
+  <div class="card"><h4>Evidence and honesty</h4>2–6 evidence items quoting real values, trace IDs copied exactly, confidence rules, and "no incident" is a valid answer.</div>
+</div>
+<p class="muted">Two design details: the prompt never mentions feature flags (a test checks this), and it is passed to ADK as a function, because ADK would otherwise treat <code>{...}</code> in the PromQL examples as template placeholders.</p>
+</section>
+
+<section class="page-break">
+<h2>8. The structured answer</h2>
+<p>The agent must end with JSON that matches a Pydantic schema. ADK validates it.</p>
+<pre><code>{"incident": true,
+ "root_cause_service": "payment",
+ "failure_type": "errors",            // errors | latency | resource | queue_lag | traffic_spike | unavailable | none | unknown
+ "confidence": "high",                // high only when metrics, traces and logs agree
+ "summary": "Payment charge calls fail; checkout errors are a downstream symptom.",
+ "affected_services": ["checkout", "frontend"],
+ "evidence": [{"kind": "trace", "detail": "error_origins payment :: charge x5"},
+              {"kind": "log",   "detail": "payment warn 'Payment request failed' x16"}],
+ "alternative_causes": ["checkout"],
+ "suggested_next_checks": ["recent payment deploys"]}</code></pre>
+<div class="callout"><b>Why structured, not free text?</b>In Week 5 a script will inject a fault, run the agent and compare <code>root_cause_service</code> with the known answer automatically. Free text cannot be scored. <code>alternative_causes</code> gives a "right answer in top 3" metric, and <code>incident: false</code> lets us score false alarms.</div>
+
+<h2>9. Safety rules in the agent</h2>
+<table>
+  <tr><th style="width:28%">Rule</th><th>How it is enforced</th></tr>
+  <tr><td>Read-only</td><td>Only the 5 read tools are attached. No flag, shell, HTTP or write tool exists for this agent. The agent cannot hand work to other agents.</td></tr>
+  <tr><td>Allow-list (defence in depth)</td><td><code>before_tool_callback</code> refuses any tool name outside <code>TOOLS</code>, so a model that invents <code>set_feature_flag</code> gets an error and nothing runs.</td></tr>
+  <tr><td>Budget</td><td>After 15 tool calls the guard returns <code>budget_exhausted</code>: "answer with what you have". This caps cost and stops loops.</td></tr>
+  <tr><td>No answer leakage</td><td>All telemetry still passes through <code>filters.py</code>; the prompt and alert never mention flags (tests check both).</td></tr>
+  <tr><td>Secrets</td><td>The Gemini key lives in <code>.env</code>, which is git-ignored; <code>.env.example</code> documents it.</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>10. The detector (the alarm)</h2>
+<p>Version 1 is a simple rule with no AI: <b>error ratio &gt; 5 % for 2 minutes</b>, ignoring services with almost no traffic, then a 10-minute cooldown. All breaching services go into <b>one</b> alert, because failures cascade: payment and checkout breaking together is one incident, not two.</p>
+<p>The logic is a small state machine (<code>ThresholdDetector.observe(now, readings)</code>) with no network calls, so it is easy to test: "4 bad readings in a row fire", "a blip resets the clock", "cooldown holds".</p>
+<h3>Real dry run with the payment fault on</h3>
+<pre class="term">watching: error ratio > 5% for 120s, poll 15s, cooldown 600s (dry run)
+12:18:25  services above 5%: {'checkout': 30.8, 'payment': 30.8}
+12:19:10  services above 5%: {'checkout': 40.0, 'payment': 40.0}
+12:20:11  services above 5%: {'checkout': 42.9, 'payment': 42.9}
+<span class="r">ALERT (automated detector): error ratio above 5% for at least 2 minutes.
+Breaching services: checkout 42.9%, payment 42.9%. Breach started 12:18:25 UTC,
+alert fired 12:20:26 UTC. Investigate and find the root cause.</span>
+12:20:41  services above 5%: {...}        <span class="muted">&lt;- no second alert (cooldown)</span></pre>
+<div class="callout warn"><b>A real-world lesson: low traffic makes ratios noisy</b>At first the detector used a 2-minute window. The demo sends only about 1 checkout per minute, so over 2 minutes payment's error ratio jumped between 0 % and 100 %, and one poll read <b>0 %</b> while the fault was still on. That would reset the "2 minutes in a row" clock and delay or miss the alert. Fix: the detector smooths over <b>5 minutes</b> (it then read 31–43 % steadily). The agent's tools keep 2 minutes because the agent needs to react quickly and also reads traces and logs.</div>
+<p><b>Version 2 (later):</b> replace the fixed 5 % with a learned normal band (rolling mean ± 3 standard deviations) so latency faults, which barely change error ratios, are caught too.</p>
+
+<h2>11. Testing an AI agent without calling the AI</h2>
+<p>Calling Gemini in unit tests would cost money, hit rate limits and give different answers each run. So we wrote <code>ScriptedLlm</code>: a fake model (a subclass of ADK's <code>BaseLlm</code>) that plays back a fixed list of turns, such as "call <code>get_service_health</code>", then "call <code>get_traces</code>", then "here is the JSON". The <b>real</b> ADK loop runs: it calls our real tool functions (backends are offline in unit tests, so they return clean error dicts) and validates the answer.</p>
+<table>
+  <tr><th>Test area</th><th>Examples of what is checked</th></tr>
+  <tr><td>Agent setup (26 tests)</td><td>Exactly the 5 read tools; no transfer; prompt loaded verbatim; prompt has the <code>warn</code> lesson and no flag words; both answer paths; budget stops a looping model; unknown tools never run; quota errors keep the transcript; invalid answers are reported, not raised.</td></tr>
+  <tr><td>Health tools (33 tests)</td><td>Merging the 3 signals; unhealthy first; observation thresholds; bad input refused before any query; <code>flagd</code> forbidden; flagd series dropped; 3 GET requests to <code>/api/v1/query_range</code>.</td></tr>
+  <tr><td>Detector (11 tests)</td><td>Fires only after 2 minutes; one alert per incident; blips reset; cooldown; idle services ignored; 5-minute queries; survives metric errors.</td></tr>
+  <tr><td>Live (3 new)</td><td>Overview covers the shop and hides flagd; per-service detail; detector readings on real Prometheus.</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>12. Bugs and surprises we found</h2>
+<dl class="qa">
+  <dt>1. The "invisible" error logs (from Week 1 testing)</dt>
+  <dd><code>search_logs(level="error")</code> returned nothing during the payment fault, because payment logs failures as <b>warnings</b>. Now in the prompt: always use <code>level="warn"</code>.</dd>
+  <dt>2. ADK's hidden answer tool</dt>
+  <dd>With an AI Studio key, ADK cannot combine tools and an output schema natively. Reading the ADK 2.15 source showed that it then adds an internal tool, <code>set_model_response</code>, which the model calls to hand in its JSON. Our allow-list guard would have <b>blocked the final answer</b>. Fixed (the guard lets that one tool through without counting it) and covered by a test that simulates this mode.</dd>
+  <dt>3. A newline sneaking into PromQL</dt>
+  <dd>Service names were checked with <code>re.match(r"^...$")</code>. In Python, <code>$</code> also matches before a trailing newline, so <code>"payment\n"</code> passed and would have been pasted into a PromQL query. A parametrised test caught it; fixed with <code>fullmatch</code>.</dd>
+  <dt>4. Noisy ratios at low traffic</dt>
+  <dd>Section 10: 2-minute error ratios swung between 0 % and 100 %. The detector now uses 5 minutes.</dd>
+  <dt>5. Noisy latency notes</dt>
+  <dd>fraud-detection showed "p95 latency 2.1x higher" from about 2 requests a minute. Latency observations now need at least 0.05 req/s.</dd>
+  <dt>6. Braces in the prompt</dt>
+  <dd>ADK fills <code>{name}</code> placeholders in string instructions from session state. PromQL is full of braces, so the prompt is passed as a function, which ADK uses as-is.</dd>
+</dl>
+
+<h2>13. Status, how to run it, limitations</h2>
+<div class="callout warn"><b>Honest status</b>Everything is built and tested (427 tests, including live ones on a real fault). The one thing <b>not yet measured</b> is how often <i>Gemini</i> names the right cause, because no API key was configured during the build. The Week-2 target, "the single agent finds the payment fault most of the time", is checked with <code>run_diagnosis.py --runs 5</code>. Until that runs, do not quote an accuracy number.</div>
+<h3>Run it yourself</h3>
+<ol>
+  <li>Get a free key at <code>aistudio.google.com/apikey</code>, then <code>cp .env.example .env</code> and paste it as <code>GOOGLE_API_KEY</code>.</li>
+  <li>Start the demo (<code>scripts/start_demo.sh</code>) and turn on <code>paymentFailure=50%</code> at <code>localhost:8080/feature</code>. Wait 3 minutes.</li>
+  <li><code>.venv/bin/python scripts/run_diagnosis.py --runs 5</code> prints every step and a tally such as "payment x4, checkout x1".</li>
+  <li><code>.venv/bin/python -m detector.watcher</code> waits for the alert, then the agent investigates by itself.</li>
+  <li>Turn the fault off and run once more: the agent should answer <code>incident: false</code>.</li>
+</ol>
+<h3>Limitations (known, planned)</h3>
+<ul>
+  <li>One generalist agent; the Coordinator plus specialist team arrives in Week 4.</li>
+  <li>No runbooks or past incidents yet (RAG, Week 3).</li>
+  <li>The detector only catches error faults; latency and memory faults need version 2.</li>
+  <li>The alert names all breaching services. For a fair evaluation in Week 5 we may limit it to the user-facing service, so the alert does not hint at the answer.</li>
+  <li>No session storage (in-memory) and no approval flow yet (Week 4).</li>
+</ul>
+</section>
+
+<section class="page-break">
+<h2>14. Interview questions and answers</h2>
+<dl class="qa">
+  <dt>How does your agent call the observability tools? Is it MCP?</dt>
+  <dd>No. ADK wraps plain Python functions as FunctionTools, using their type hints and docstrings as the schema. Gemini asks for a call, ADK runs the function in-process, and the result goes back to the model. MCP would make sense if the tools lived in another system, for example a customer's existing MCP server. Our tool layer could be exposed as one later.</dd>
+  <dt>The LLM has to write PromQL. Isn't that fragile?</dt>
+  <dd>Yes, so the agent mostly doesn't. I added <code>get_service_health</code> and <code>get_service_metrics</code>, which run tested golden-signal queries and return a compact table with plain observations. Raw PromQL is a fallback for unusual questions, and the prompt includes a cookbook of correct queries.</dd>
+  <dt>How does it tell symptom from cause?</dt>
+  <dd>Metrics often can't: during the payment fault, checkout and payment had identical error ratios. The agent follows traces and reads <code>error_origins</code>, the deepest failing span, which pointed at <code>payment :: charge</code> in every failed trace. Logs then confirm it.</dd>
+  <dt>How do you stop it inventing a root cause?</dt>
+  <dd>Structured output with mandatory evidence quoting real values or trace IDs, confidence rules (high only if three signals agree), "no incident" as a valid answer, and in Week 4 a Reviewer agent. In Week 5 I measure the evidence-grounded rate.</dd>
+  <dt>How do you test something non-deterministic?</dt>
+  <dd>I split it. Deterministic parts (tools, guard, parsing, detector, the ADK loop itself) are tested with a scripted fake model, so there are no API calls and no flakiness. The model's judgement is measured separately with repeated runs on injected faults, where the true cause is known.</dd>
+  <dt>What stops the agent from doing something dangerous or expensive?</dt>
+  <dd>It only has read tools; a callback enforces an allow-list and a 15-call budget; it cannot transfer to other agents; and all telemetry goes through a GET-only, filtered HTTP layer.</dd>
+  <dt>How do you know it isn't cheating?</dt>
+  <dd>The faults are injected with feature flags, and the flag state leaks into telemetry. The filter removes it from every tool output (tested on data recorded during real faults), no tool can reach flagd, and the prompt and alert never mention flags.</dd>
+  <dt>Why does the detector have no AI?</dt>
+  <dd>Detection must be cheap, predictable and always on. A threshold with a duration and cooldown is easy to reason about and test. The expensive LLM runs only once per incident. Version 2 will learn a normal band per metric, which is where my anomaly-detection background comes in.</dd>
+  <dt>What surprised you?</dt>
+  <dd>Real data issues: failures logged as warnings, error ratios that swing from 0 % to 100 % at low traffic, and ADK's hidden <code>set_model_response</code> tool, which my own safety guard would have blocked. All three were found by running against the real system and reading the framework source, not by assuming.</dd>
+  <dt>What would change for a real customer?</dt>
+  <dd>Swap the tool layer for their stack (Cloud Monitoring, Datadog), keep the same function signatures, adapt the golden-signal queries to their metric names, give the tools read-only service accounts, and run the same evaluation on their past incidents before going live.</dd>
+</dl>
+
+<h3>Next: Week 3</h3>
+<p>Write 10–15 runbooks and 5 seed postmortems, embed them into pgvector, and add <code>search_runbooks</code> / <code>search_postmortems</code>, so the agent can answer "have we seen this before, and what did we do?"</p>
+</section>
+
+</body>
+</html>

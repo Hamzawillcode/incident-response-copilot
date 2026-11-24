@@ -1,0 +1,256 @@
+### Request rate per service (RED: Rate)
+>>> query_metrics('sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))', 15, max_series=3)
+{
+ "query": "sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))",
+ "window_minutes": 15,
+ "start": "2026-11-20T20:05:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "ok",
+ "series_count": 18,
+ "returned_series": 3,
+ "truncated": true,
+ "series": [
+  {
+   "labels": {
+    "service_name": "frontend-proxy"
+   },
+   "points": 16,
+   "non_finite_points": 0,
+   "min": 32.5458,
+   "max": 35.792,
+   "mean": 34.1122,
+   "first": 34.2254,
+   "latest": 33.296,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.929456,
+   "change_percent": -2.71569,
+   "trend": "flat",
+   "early_median": 34.414,
+   "recent_median": 32.9435
+  },
+  {
+   "labels": {
+    "service_name": "frontend"
+   },
+   "points": 16,
+   "non_finite_points": 0,
+   "min": 27.9333,
+   "max": 30.4883,
+   "mean": 29.1802,
+   "first": 29.3545,
+   "latest": 28.4751,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.879415,
+   "change_percent": -2.99584,
+   "trend": "flat",
+   "early_median": 29.6105,
+   "recent_median": 28.3435
+  },
+  {
+   "labels": {
+    "service_name": "product-catalog"
+   },
+   "points": 16,
+   "non_finite_points": 0,
+   "min": 10.75,
+   "max": 11.7417,
+   "mean": 11.2266,
+   "first": 11.2668,
+   "latest": 11.025,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.241762,
+   "change_percent": -2.14579,
+   "trend": "flat",
+   "early_median": 11.6289,
+   "recent_median": 10.975
+  }
+ ]
+}
+
+### Checkout p95 latency in ms (RED: Duration)
+>>> query_metrics('histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name="checkout"}[5m])))', 30)
+{
+ "query": "histogram_quantile(0.95, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"checkout\"}[5m])))",
+ "window_minutes": 30,
+ "start": "2026-11-20T19:50:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "ok",
+ "series_count": 1,
+ "returned_series": 1,
+ "truncated": false,
+ "series": [
+  {
+   "labels": {},
+   "points": 31,
+   "non_finite_points": 0,
+   "min": 34.2105,
+   "max": 47.7931,
+   "mean": 40.7993,
+   "first": 47.0449,
+   "latest": 36.6667,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -10.3783,
+   "change_percent": -22.0603,
+   "trend": "increasing",
+   "early_median": 36.4762,
+   "recent_median": 43.2
+  }
+ ]
+}
+
+### Error ratio per service (RED: Errors)
+>>> query_metrics('sum by (service_name) (rate(traces_span_metrics_calls_total{status_code="STATUS_CODE_ERROR"}[5m])) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))', 30, max_series=3)
+{
+ "query": "sum by (service_name) (rate(traces_span_metrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[5m])) / sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))",
+ "window_minutes": 30,
+ "start": "2026-11-20T19:50:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "ok",
+ "series_count": 6,
+ "returned_series": 3,
+ "truncated": true,
+ "series": [
+  {
+   "labels": {
+    "service_name": "load-generator"
+   },
+   "points": 31,
+   "non_finite_points": 0,
+   "min": 0.0308642,
+   "max": 0.0535714,
+   "mean": 0.0388653,
+   "first": 0.0359078,
+   "latest": 0.0352941,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.000613709,
+   "change_percent": -1.70912,
+   "trend": "increasing",
+   "early_median": 0.0359078,
+   "recent_median": 0.0426966
+  },
+  {
+   "labels": {
+    "service_name": "ad"
+   },
+   "points": 30,
+   "non_finite_points": 0,
+   "min": 0.0,
+   "max": 0.00719424,
+   "mean": 0.00226436,
+   "first": 0.0064598,
+   "latest": 0.0,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.0064598,
+   "change_percent": -100.0,
+   "trend": "decreasing",
+   "early_median": 0.00494967,
+   "recent_median": 0.0
+  },
+  {
+   "labels": {
+    "service_name": "fraud-detection"
+   },
+   "points": 30,
+   "non_finite_points": 0,
+   "min": 0.0,
+   "max": 0.0588235,
+   "mean": 0.0175269,
+   "first": 0.0531665,
+   "latest": 0.0,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -0.0531665,
+   "change_percent": -100.0,
+   "trend": "decreasing",
+   "early_median": 0.0337747,
+   "recent_median": 0.0
+  }
+ ]
+}
+
+### Kafka container memory (USE: Utilisation)
+>>> query_metrics('container_memory_usage_total_bytes{container_name="kafka"}', 60)
+{
+ "query": "container_memory_usage_total_bytes{container_name=\"kafka\"}",
+ "window_minutes": 60,
+ "start": "2026-11-20T19:20:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "ok",
+ "series_count": 1,
+ "returned_series": 1,
+ "truncated": false,
+ "series": [
+  {
+   "labels": {
+    "metric": "container_memory_usage_total_bytes",
+    "container_name": "kafka"
+   },
+   "points": 41,
+   "non_finite_points": 0,
+   "min": 555188000.0,
+   "max": 645030000.0,
+   "mean": 593490000.0,
+   "first": 630309000.0,
+   "latest": 607781000.0,
+   "latest_timestamp": "2026-11-20T20:20:41+00:00",
+   "latest_age_seconds": 0.0,
+   "change": -22528000.0,
+   "change_percent": -3.57412,
+   "trend": "flat",
+   "early_median": 574544000.0,
+   "recent_median": 605731000.0
+  }
+ ]
+}
+
+### No data
+>>> query_metrics('traces_span_metrics_calls_total{service_name="does-not-exist"}', 15)
+{
+ "query": "traces_span_metrics_calls_total{service_name=\"does-not-exist\"}",
+ "window_minutes": 15,
+ "start": "2026-11-20T20:05:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "no_data",
+ "series_count": 0,
+ "series": [],
+ "message": "The query is valid but matched no data in this window."
+}
+
+### Syntax error
+>>> query_metrics('sum(rate(traces_span_metrics_calls_total[5m])', 15)
+{
+ "query": "sum(rate(traces_span_metrics_calls_total[5m])",
+ "window_minutes": 15,
+ "start": "2026-11-20T20:05:41+00:00",
+ "end": "2026-11-20T20:20:41+00:00",
+ "step_seconds": 60,
+ "status": "error",
+ "error": {
+  "type": "bad_query",
+  "message": "HTTP 400: invalid parameter \"query\": 1:46: parse error: unclosed left parenthesis"
+ }
+}
+
+### Forbidden: flag metric
+>>> query_metrics('sum by (feature_flag_key) (feature_flag_evaluation_requests_total)', 15)
+{
+ "query": "sum by (feature_flag_key) (feature_flag_evaluation_requests_total)",
+ "window_minutes": 15,
+ "status": "error",
+ "error": {
+  "type": "forbidden_query",
+  "message": "Queries about feature flags or the flag service are not permitted."
+ }
+}
+

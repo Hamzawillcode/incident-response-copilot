@@ -1,0 +1,68 @@
+{
+ "description": "RAW: invalid date in a range query -> HTTP 400.",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/otel-logs-*/_search",
+  "params": {},
+  "json_body": {
+   "query": {
+    "range": {
+     "observedTimestamp": {
+      "gte": "not-a-date"
+     }
+    }
+   }
+  }
+ },
+ "response": {
+  "status_code": 400,
+  "content_type": "application/json; charset=UTF-8",
+  "body": {
+   "error": {
+    "root_cause": [
+     {
+      "type": "parse_exception",
+      "reason": "failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]: [failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]]"
+     }
+    ],
+    "type": "search_phase_execution_exception",
+    "reason": "all shards failed",
+    "phase": "query",
+    "grouped": true,
+    "failed_shards": [
+     {
+      "shard": 0,
+      "index": "otel-logs-2026-11-20",
+      "node": "IcDUQOihSpOq5pzr8Luieg",
+      "reason": {
+       "type": "parse_exception",
+       "reason": "failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]: [failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]]",
+       "caused_by": {
+        "type": "illegal_argument_exception",
+        "reason": "failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]",
+        "caused_by": {
+         "type": "date_time_parse_exception",
+         "reason": "Failed to parse with all enclosed parsers"
+        }
+       }
+      }
+     }
+    ],
+    "caused_by": {
+     "type": "parse_exception",
+     "reason": "failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]: [failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]]",
+     "caused_by": {
+      "type": "illegal_argument_exception",
+      "reason": "failed to parse date field [not-a-date] with format [strict_date_optional_time||epoch_millis]",
+      "caused_by": {
+       "type": "date_time_parse_exception",
+       "reason": "Failed to parse with all enclosed parsers"
+      }
+     }
+    }
+   },
+   "status": 400
+  }
+ }
+}

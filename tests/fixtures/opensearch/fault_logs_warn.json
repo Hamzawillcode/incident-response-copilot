@@ -1,0 +1,1324 @@
+{
+ "description": "FAULT: search_logs(level=\"warn\", minutes=5).",
+ "recorded_at": "2026-11-20T20:55:14+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/otel-logs-*/_search",
+  "params": {
+   "ignore_unavailable": "true",
+   "allow_no_indices": "true"
+  },
+  "json_body": {
+   "size": 200,
+   "timeout": "10s",
+   "track_total_hits": true,
+   "sort": [
+    {
+     "observedTimestamp": {
+      "order": "desc"
+     }
+    }
+   ],
+   "_source": [
+    "@timestamp",
+    "observedTimestamp",
+    "severity",
+    "body",
+    "eventName",
+    "traceId",
+    "spanId",
+    "attributes",
+    "resource.service.name",
+    "resource"
+   ],
+   "query": {
+    "bool": {
+     "filter": [
+      {
+       "range": {
+        "observedTimestamp": {
+         "gte": "2026-11-20T20:50:13.693Z",
+         "lte": "2026-11-20T20:55:13.693Z",
+         "format": "strict_date_optional_time"
+        }
+       }
+      },
+      {
+       "bool": {
+        "should": [
+         {
+          "range": {
+           "severity.number": {
+            "gte": 13,
+            "lte": 24
+           }
+          }
+         },
+         {
+          "bool": {
+           "must_not": [
+            {
+             "exists": {
+              "field": "severity.number"
+             }
+            }
+           ],
+           "filter": [
+            {
+             "terms": {
+              "severity.text.keyword": [
+               "CRIT",
+               "CRITICAL",
+               "Crit",
+               "Critical",
+               "EMERGENCY",
+               "ERR",
+               "ERROR",
+               "Emergency",
+               "Err",
+               "Error",
+               "FATAL",
+               "Fatal",
+               "PANIC",
+               "Panic",
+               "WARN",
+               "WARNING",
+               "Warn",
+               "Warning",
+               "crit",
+               "critical",
+               "emergency",
+               "err",
+               "error",
+               "fatal",
+               "panic",
+               "warn",
+               "warning"
+              ]
+             }
+            }
+           ]
+          }
+         }
+        ],
+        "minimum_should_match": 1
+       }
+      }
+     ],
+     "must": [],
+     "must_not": [
+      {
+       "terms": {
+        "resource.service.name.keyword": [
+         "flagd",
+         "flagd-ui"
+        ]
+       }
+      },
+      {
+       "query_string": {
+        "query": "*flagd* OR *flagservice* OR *ofrep* OR *openfeature* OR *featureflag* OR *feature_flag* OR \"feature flag\" OR adFailure OR adHighCpu OR adManualGc OR aiRunawayAgent OR aiSlowResponse OR cartFailure OR emailMemoryLeak OR emitRawPii OR failedReadinessProbe OR imageSlowLoad OR intlShippingSlowdown OR kafkaQueueProblems OR loadGeneratorFloodHomepage OR paymentFailure OR paymentUnreachable OR productCatalogFailure OR productCatalogLockContention OR recommendationCacheFailure",
+        "fields": [
+         "body",
+         "eventName"
+        ],
+        "analyze_wildcard": true
+       }
+      },
+      {
+       "query_string": {
+        "query": "_exists_:attributes.feature_flag*"
+       }
+      }
+     ]
+    }
+   },
+   "aggs": {
+    "by_service": {
+     "terms": {
+      "field": "resource.service.name.keyword",
+      "size": 40
+     }
+    },
+    "by_level": {
+     "filters": {
+      "filters": {
+       "trace": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 1,
+             "lte": 4
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "TRACE",
+                "Trace",
+                "trace"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "debug": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 5,
+             "lte": 8
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "DEBUG",
+                "Debug",
+                "debug"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "info": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 9,
+             "lte": 12
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "INFO",
+                "INFORMATION",
+                "INFORMATIONAL",
+                "Info",
+                "Information",
+                "Informational",
+                "info",
+                "information",
+                "informational"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "warn": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 13,
+             "lte": 16
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "WARN",
+                "WARNING",
+                "Warn",
+                "Warning",
+                "warn",
+                "warning"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "error": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 17,
+             "lte": 20
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "ERR",
+                "ERROR",
+                "Err",
+                "Error",
+                "err",
+                "error"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       },
+       "fatal": {
+        "bool": {
+         "should": [
+          {
+           "range": {
+            "severity.number": {
+             "gte": 21,
+             "lte": 24
+            }
+           }
+          },
+          {
+           "bool": {
+            "must_not": [
+             {
+              "exists": {
+               "field": "severity.number"
+              }
+             }
+            ],
+            "filter": [
+             {
+              "terms": {
+               "severity.text.keyword": [
+                "CRIT",
+                "CRITICAL",
+                "Crit",
+                "Critical",
+                "EMERGENCY",
+                "Emergency",
+                "FATAL",
+                "Fatal",
+                "PANIC",
+                "Panic",
+                "crit",
+                "critical",
+                "emergency",
+                "fatal",
+                "panic"
+               ]
+              }
+             }
+            ]
+           }
+          }
+         ],
+         "minimum_should_match": 1
+        }
+       }
+      }
+     }
+    },
+    "first_seen": {
+     "min": {
+      "field": "observedTimestamp"
+     }
+    },
+    "last_seen": {
+     "max": {
+      "field": "observedTimestamp"
+     }
+    }
+   }
+  }
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json; charset=UTF-8",
+  "body": {
+   "took": 516,
+   "timed_out": false,
+   "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+   },
+   "hits": {
+    "total": {
+     "value": 14,
+     "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "ILa9-qEBmPE3-RMx5w3t",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "e7be080d3a6ac2a0",
+       "traceId": "35b0dbb25364bc794f383c2f9d128212",
+       "@timestamp": "2026-11-20T20:55:10.906Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/products/OLJCESPC7Z",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:55:12.108570169Z"
+      },
+      "sort": [
+       1795208112108
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "KLa9-qEBmPE3-RMx5w3t",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "553a09d39c955982",
+       "traceId": "35b0dbb25364bc794f383c2f9d128212",
+       "@timestamp": "2026-11-20T20:55:10.952Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: failed to prepare order: failed to get product #\"OLJCESPC7Z\"",
+        "exception.stacktrace": "Error: 13 INTERNAL: failed to prepare order: failed to get product #\"OLJCESPC7Z\"\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as placeOrder] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__009k40p._.js:1:546\n    at new Promise (<anonymous>)"
+       },
+       "body": "Checkout failed to place order",
+       "observedTimestamp": "2026-11-20T20:55:12.108749919Z"
+      },
+      "sort": [
+       1795208112108
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "aLa9-qEBmPE3-RMx0gz1",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "b674510b21caac89",
+       "traceId": "749dcae79d5b62902268719f7401e3c5",
+       "@timestamp": "2026-11-20T20:55:05.716Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/recommendations",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:55:06.740658305Z"
+      },
+      "sort": [
+       1795208106740
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "bba9-qEBmPE3-RMx0gz1",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "5466d046e497fc8c",
+       "traceId": "669d5f257bd1ce838edf2cac976253c7",
+       "@timestamp": "2026-11-20T20:55:05.983Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/recommendations",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:55:06.740790514Z"
+      },
+      "sort": [
+       1795208106740
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "BLa9-qEBmPE3-RMxxww9",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "715d16c4f13822b5",
+       "traceId": "196ecf5693391f50a19051876566487b",
+       "@timestamp": "2026-11-20T20:55:02.57Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/recommendations",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:55:03.739307846Z"
+      },
+      "sort": [
+       1795208103739
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "qLa9-qEBmPE3-RMxwAvj",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "577dec6f9c68fa9a",
+       "traceId": "64ba961ca4ff1359b9ab9387c97b28b9",
+       "@timestamp": "2026-11-20T20:55:01.028Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:55:02.114185887Z"
+      },
+      "sort": [
+       1795208102114
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "aba9-qEBmPE3-RMxugsK",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "5f1ed3e46e14edc0",
+       "traceId": "a5b2b1656116d8f179c1171058a9d553",
+       "@timestamp": "2026-11-20T20:54:59.181Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/recommendations",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:55:00.361378011Z"
+      },
+      "sort": [
+       1795208100361
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "yLa9-qEBmPE3-RMxqwpq",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "spanId": "d9374eee23afba77",
+       "traceId": "220d3324c3d4f0285a50ea9f03aab80b",
+       "@timestamp": "2026-11-20T20:54:55.636Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.runtime.version": "24.21.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/app/server.js",
+        "telemetry.sdk.version": "2.11.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "frontend",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "url.path": "/api/recommendations",
+        "http.request.method": "GET",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "13",
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "http.response.status_code": 500
+       },
+       "body": "API request failed",
+       "observedTimestamp": "2026-11-20T20:54:56.618023759Z"
+      },
+      "sort": [
+       1795208096618
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "vba8-qEBmPE3-RMx9AP9",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "2e140a9ecf29b6cf",
+       "traceId": "3870e90dbc021fa8f69c941e78f44fef",
+       "@timestamp": "2026-11-20T20:54:08.755Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:54:09.916067209Z"
+      },
+      "sort": [
+       1795208049916
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Tra8-qEBmPE3-RMx6gOC",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "63d1e6096e199e0f",
+       "traceId": "8da7aab914098e44d4bae1948b4c98ee",
+       "@timestamp": "2026-11-20T20:54:06.063Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:54:07.23194125Z"
+      },
+      "sort": [
+       1795208047231
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "ZrW8-qEBmPE3-RMxgv_L",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "40216ee6e101bcb5",
+       "traceId": "8e238e1befe8fae590633d41cac65185",
+       "@timestamp": "2026-11-20T20:53:39.587Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:53:40.68235171Z"
+      },
+      "sort": [
+       1795208020682
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "NbW8-qEBmPE3-RMxDvv8",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 17,
+        "text": "error"
+       },
+       "@timestamp": "2026-11-20T20:53:10.310238501Z",
+       "resource": {
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "otelcol-contrib",
+        "host.cpu.stepping": "0",
+        "host.cpu.family": "",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "host.cpu.vendor.id": "Apple",
+        "service.instance.id": "b1717153-031f-4acd-a4e1-f97eb22b6064",
+        "service.version": "0.159.0",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "host.cpu.model.id": "0x000"
+       },
+       "attributes": {
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "go.opentelemetry.io/collector/scraper/scrapererror.PartialScrapeError",
+        "exception.message": "error reading process name for pid 99243: open /hostfs/proc/99243/status: no such file or directory; error reading process name for pid 99244: open /hostfs/proc/99244/status: no such file or directory; error reading process name for pid 99246: open /hostfs/proc/99246/status: no such file or directory; error reading process name for pid 99290: open /hostfs/proc/99290/status: no such file or directory; error reading process name for pid 99301: open /hostfs/proc/99301/status: no such file or directory; error reading cpu times for process \"pg_isready\" (pid 99320): open /hostfs/proc/99320/stat: no such file or directory; error reading memory info for process \"pg_isready\" (pid 99320): open /hostfs/proc/99320/statm: no such file or directory",
+        "code.file.path": "go.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/obs_metrics.go",
+        "code.function.name": "go.opentelemetry.io/collector/scraper/scraperhelper.wrapObsMetrics.func1",
+        "exception.stacktrace": "go.opentelemetry.io/collector/scraper/scraperhelper.wrapObsMetrics.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/obs_metrics.go:61\ngo.opentelemetry.io/collector/scraper.ScrapeMetricsFunc.ScrapeMetrics\n\tgo.opentelemetry.io/collector/scraper@v0.159.0/metrics.go:24\ngo.opentelemetry.io/collector/scraper/scraperhelper.scrapeMetrics\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/controller.go:166\ngo.opentelemetry.io/collector/scraper/scraperhelper.NewMetricsController.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/controller.go:136\ngo.opentelemetry.io/collector/scraper/scraperhelper/internal/controller.(*Controller[...]).startScraping.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/internal/controller/controller.go:126\nsync.(*WaitGroup).Go.func1\n\tsync/waitgroup.go:258",
+        "code.line.number": 61,
+        "scraper": "process"
+       },
+       "body": "Error scraping metrics",
+       "observedTimestamp": "2026-11-20T20:53:11.035376501Z"
+      },
+      "sort": [
+       1795207991035
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "R7W6-qEBmPE3-RMxOenp",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "80c35be2ced31e9d",
+       "traceId": "caf2e315983b8b3782dc0a2195d8f5e8",
+       "@timestamp": "2026-11-20T20:51:09.83Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:51:10.95160696Z"
+      },
+      "sort": [
+       1795207870951
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "S7W5-qEBmPE3-RMxieLv",
+      "_score": null,
+      "_source": {
+       "severity": {
+        "number": 13,
+        "text": "warn"
+       },
+       "spanId": "e3224c94b5c93896",
+       "traceId": "2e6eb9397bfb62214090caaa60d057d6",
+       "@timestamp": "2026-11-20T20:50:24.805Z",
+       "resource": {
+        "host.cpu.family": "",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.runtime.version": "22.22.0",
+        "os.type": "linux",
+        "host.cpu.model.name": "",
+        "process.pid": "1",
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "process.executable.name": "/nodejs/bin/node",
+        "os.version": "6.12.76-linuxkit",
+        "telemetry.sdk.name": "opentelemetry",
+        "process.owner": "nonroot",
+        "telemetry.sdk.language": "nodejs",
+        "process.runtime.name": "nodejs",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "host.arch": "arm64",
+        "host.name": "docker-desktop",
+        "process.command": "/usr/src/app/index.js",
+        "telemetry.sdk.version": "2.9.0",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.cache.l2.size": "0",
+        "service.name": "payment",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "process.executable.path": "/nodejs/bin/node",
+        "service.criticality": "critical",
+        "process.runtime.description": "Node.js"
+       },
+       "attributes": {
+        "service.name": "payment",
+        "data_stream": {
+         "namespace": "namespace",
+         "type": "record",
+         "dataset": "default"
+        },
+        "exception.type": "Error",
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "observedTimestamp": "2026-11-20T20:50:25.903163884Z"
+      },
+      "sort": [
+       1795207825903
+      ]
+     }
+    ]
+   },
+   "aggregations": {
+    "first_seen": {
+     "value": 1795207825903.0,
+     "value_as_string": "2026-11-20T20:50:25.903Z"
+    },
+    "by_service": {
+     "doc_count_error_upper_bound": 0,
+     "sum_other_doc_count": 0,
+     "buckets": [
+      {
+       "key": "frontend",
+       "doc_count": 7
+      },
+      {
+       "key": "payment",
+       "doc_count": 6
+      },
+      {
+       "key": "otelcol-contrib",
+       "doc_count": 1
+      }
+     ]
+    },
+    "last_seen": {
+     "value": 1795208112108.0,
+     "value_as_string": "2026-11-20T20:55:12.108Z"
+    },
+    "by_level": {
+     "buckets": {
+      "debug": {
+       "doc_count": 0
+      },
+      "error": {
+       "doc_count": 8
+      },
+      "fatal": {
+       "doc_count": 0
+      },
+      "info": {
+       "doc_count": 0
+      },
+      "trace": {
+       "doc_count": 0
+      },
+      "warn": {
+       "doc_count": 6
+      }
+     }
+    }
+   }
+  }
+ }
+}

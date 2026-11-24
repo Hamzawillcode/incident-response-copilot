@@ -1,0 +1,26 @@
+{
+ "description": "Valid query that matches no series.",
+ "recorded_at": "2026-11-20T20:16:11.765284+00:00",
+ "prometheus_url": "http://localhost:9090",
+ "request": {
+  "method": "GET",
+  "path": "/api/v1/query_range",
+  "params": {
+   "query": "traces_span_metrics_calls_total{service_name=\"does-not-exist\"}",
+   "start": "1795203971.765",
+   "end": "1795205771.765",
+   "step": "15"
+  }
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json",
+  "body": {
+   "status": "success",
+   "data": {
+    "resultType": "matrix",
+    "result": []
+   }
+  }
+ }
+}

@@ -1,0 +1,892 @@
+{
+ "description": "get_traces(service=\"load-generator\", errors_only=True, minutes=15, limit=2): /prompt noise.",
+ "recorded_at": "2026-11-20T20:49:39+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/jaeger/ui/api/traces",
+  "params": {
+   "service": "load-generator",
+   "start": "1795206879771142",
+   "end": "1795207779771142",
+   "limit": "4",
+   "tags": "{\"error\": \"true\"}"
+  },
+  "json_body": null
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json",
+  "body": {
+   "data": [
+    {
+     "traceID": "8821021133ba535fbbca439190962c5a",
+     "spans": [
+      {
+       "traceID": "8821021133ba535fbbca439190962c5a",
+       "spanID": "0363a6b9375c92f1",
+       "operationName": "POST",
+       "references": [
+        {
+         "refType": "CHILD_OF",
+         "traceID": "8821021133ba535fbbca439190962c5a",
+         "spanID": "415117a997068310"
+        }
+       ],
+       "startTime": 1795207742486757,
+       "duration": 5390,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "opentelemetry.instrumentation.requests"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "0.63b0"
+        },
+        {
+         "key": "http.method",
+         "type": "string",
+         "value": "POST"
+        },
+        {
+         "key": "http.url",
+         "type": "string",
+         "value": "http://agent:8010/prompt"
+        },
+        {
+         "key": "user_agent.original",
+         "type": "string",
+         "value": "python-requests/2.34.2"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "client"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        },
+        {
+         "key": "otel.status_description",
+         "type": "string",
+         "value": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207742492124,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "exception"
+          },
+          {
+           "key": "exception.escaped",
+           "type": "string",
+           "value": "False"
+          },
+          {
+           "key": "exception.message",
+           "type": "string",
+           "value": "HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+          },
+          {
+           "key": "exception.stacktrace",
+           "type": "string",
+           "value": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 204, in _new_conn\n    sock = connection.create_connection(\n        (self._dns_host, self.port),\n    ...<2 lines>...\n        socket_options=self.socket_options,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/connection.py\", line 60, in create_connection\n    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):\n               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_socketcommon.py\", line 221, in getaddrinfo\n    addrlist = get_hub().resolver.getaddrinfo(host, port, family, type, proto, flags)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/resolver/thread.py\", line 63, in getaddrinfo\n    return self.pool.apply(_socket.getaddrinfo, args, kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/pool.py\", line 161, in apply\n    return self.spawn(func, *args, **kwds).get()\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"src/gevent/event.py\", line 332, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 362, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 350, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 330, in gevent._gevent_cevent.AsyncResult._raise_exception\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_compat.py\", line 89, in reraise\n    raise value.with_traceback(tb)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/threadpool.py\", line 173, in __run_task\n    thread_result.set(func(*args, **kwargs))\n    ^^^^^^^^^^^\nsocket.gaierror: [Errno -2] Name or service not known\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 788, in urlopen\n    response = self._make_request(\n        conn,\n    ...<10 lines>...\n        **response_kw,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 493, in _make_request\n    conn.request(\n    ~~~~~~~~~~~~^\n        method,\n        ^^^^^^^\n    ...<6 lines>...\n        enforce_content_length=enforce_content_length,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 500, in request\n    self.endheaders()\n    ~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n    ~~~~~~~~~^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1085, in send\n    self.connect()\n    ~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 331, in connect\n    self.sock = self._new_conn()\n                ~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 211, in _new_conn\n    raise NameResolutionError(self.host, self, e) from e\nurllib3.exceptions.NameResolutionError: HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 696, in send\n    resp = conn.urlopen(\n        method=request.method,\n    ...<9 lines>...\n        chunked=chunked,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/urllib3/__init__.py\", line 440, in instrumented_urlopen\n    return wrapped(*args, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 842, in urlopen\n    retries = retries.increment(\n        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/retry.py\", line 543, in increment\n    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nurllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/trace/__init__.py\", line 608, in use_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/sdk/trace/__init__.py\", line 1177, in start_as_current_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 494, in instrumented_send\n    raise exception.with_traceback(exception.__traceback__)\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 421, in instrumented_send\n    result = wrapped_send(\n        self, request, **kwargs\n    )  # *** PROCEED\n  File \"/usr/local/lib/python3.14/site-packages/requests/sessions.py\", line 784, in send\n    r = adapter.send(request, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 729, in send\n    raise ConnectionError(e, request=request)\nrequests.exceptions.ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n"
+          },
+          {
+           "key": "exception.type",
+           "type": "string",
+           "value": "requests.exceptions.ConnectionError"
+          }
+         ]
+        }
+       ],
+       "processID": "p1",
+       "warnings": null
+      },
+      {
+       "traceID": "8821021133ba535fbbca439190962c5a",
+       "spanID": "415117a997068310",
+       "operationName": "user_ask_agent",
+       "references": [],
+       "startTime": 1795207742486303,
+       "duration": 5998,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "locustfile"
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "type": "string",
+         "value": "[{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"What currencies are supported by the Astronomy Shop?\"}]}]"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "internal"
+        }
+       ],
+       "logs": [],
+       "processID": "p1",
+       "warnings": null
+      }
+     ],
+     "processes": {
+      "p1": {
+       "serviceName": "load-generator",
+       "tags": [
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "python"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.42.0"
+        }
+       ]
+      }
+     },
+     "warnings": null
+    },
+    {
+     "traceID": "6950561b910fc0d7bfced371369537e4",
+     "spans": [
+      {
+       "traceID": "6950561b910fc0d7bfced371369537e4",
+       "spanID": "964087574a5c14b6",
+       "operationName": "POST",
+       "references": [
+        {
+         "refType": "CHILD_OF",
+         "traceID": "6950561b910fc0d7bfced371369537e4",
+         "spanID": "829bc62b2f45da9f"
+        }
+       ],
+       "startTime": 1795207741889881,
+       "duration": 5932,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "opentelemetry.instrumentation.requests"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "0.63b0"
+        },
+        {
+         "key": "http.method",
+         "type": "string",
+         "value": "POST"
+        },
+        {
+         "key": "http.url",
+         "type": "string",
+         "value": "http://agent:8010/prompt"
+        },
+        {
+         "key": "user_agent.original",
+         "type": "string",
+         "value": "python-requests/2.34.2"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "client"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        },
+        {
+         "key": "otel.status_description",
+         "type": "string",
+         "value": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207741895788,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "exception"
+          },
+          {
+           "key": "exception.escaped",
+           "type": "string",
+           "value": "False"
+          },
+          {
+           "key": "exception.message",
+           "type": "string",
+           "value": "HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+          },
+          {
+           "key": "exception.stacktrace",
+           "type": "string",
+           "value": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 204, in _new_conn\n    sock = connection.create_connection(\n        (self._dns_host, self.port),\n    ...<2 lines>...\n        socket_options=self.socket_options,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/connection.py\", line 60, in create_connection\n    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):\n               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_socketcommon.py\", line 221, in getaddrinfo\n    addrlist = get_hub().resolver.getaddrinfo(host, port, family, type, proto, flags)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/resolver/thread.py\", line 63, in getaddrinfo\n    return self.pool.apply(_socket.getaddrinfo, args, kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/pool.py\", line 161, in apply\n    return self.spawn(func, *args, **kwds).get()\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"src/gevent/event.py\", line 332, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 362, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 350, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 330, in gevent._gevent_cevent.AsyncResult._raise_exception\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_compat.py\", line 89, in reraise\n    raise value.with_traceback(tb)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/threadpool.py\", line 173, in __run_task\n    thread_result.set(func(*args, **kwargs))\n    ^^^^^^^^^^^\nsocket.gaierror: [Errno -2] Name or service not known\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 788, in urlopen\n    response = self._make_request(\n        conn,\n    ...<10 lines>...\n        **response_kw,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 493, in _make_request\n    conn.request(\n    ~~~~~~~~~~~~^\n        method,\n        ^^^^^^^\n    ...<6 lines>...\n        enforce_content_length=enforce_content_length,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 500, in request\n    self.endheaders()\n    ~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n    ~~~~~~~~~^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1085, in send\n    self.connect()\n    ~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 331, in connect\n    self.sock = self._new_conn()\n                ~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 211, in _new_conn\n    raise NameResolutionError(self.host, self, e) from e\nurllib3.exceptions.NameResolutionError: HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 696, in send\n    resp = conn.urlopen(\n        method=request.method,\n    ...<9 lines>...\n        chunked=chunked,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/urllib3/__init__.py\", line 440, in instrumented_urlopen\n    return wrapped(*args, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 842, in urlopen\n    retries = retries.increment(\n        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/retry.py\", line 543, in increment\n    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nurllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/trace/__init__.py\", line 608, in use_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/sdk/trace/__init__.py\", line 1177, in start_as_current_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 494, in instrumented_send\n    raise exception.with_traceback(exception.__traceback__)\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 421, in instrumented_send\n    result = wrapped_send(\n        self, request, **kwargs\n    )  # *** PROCEED\n  File \"/usr/local/lib/python3.14/site-packages/requests/sessions.py\", line 784, in send\n    r = adapter.send(request, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 729, in send\n    raise ConnectionError(e, request=request)\nrequests.exceptions.ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n"
+          },
+          {
+           "key": "exception.type",
+           "type": "string",
+           "value": "requests.exceptions.ConnectionError"
+          }
+         ]
+        }
+       ],
+       "processID": "p1",
+       "warnings": null
+      },
+      {
+       "traceID": "6950561b910fc0d7bfced371369537e4",
+       "spanID": "829bc62b2f45da9f",
+       "operationName": "user_ask_agent",
+       "references": [],
+       "startTime": 1795207741889518,
+       "duration": 6580,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "locustfile"
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "type": "string",
+         "value": "[{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"Show all available products in the store.\"}]}]"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "internal"
+        }
+       ],
+       "logs": [],
+       "processID": "p1",
+       "warnings": null
+      }
+     ],
+     "processes": {
+      "p1": {
+       "serviceName": "load-generator",
+       "tags": [
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "python"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.42.0"
+        }
+       ]
+      }
+     },
+     "warnings": null
+    },
+    {
+     "traceID": "df624a83aa7c322f7926f5382bf736bd",
+     "spans": [
+      {
+       "traceID": "df624a83aa7c322f7926f5382bf736bd",
+       "spanID": "9c02cb22a1bf0610",
+       "operationName": "POST",
+       "references": [
+        {
+         "refType": "CHILD_OF",
+         "traceID": "df624a83aa7c322f7926f5382bf736bd",
+         "spanID": "378c82218ec5466e"
+        }
+       ],
+       "startTime": 1795207713625889,
+       "duration": 12100,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "opentelemetry.instrumentation.requests"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "0.63b0"
+        },
+        {
+         "key": "http.method",
+         "type": "string",
+         "value": "POST"
+        },
+        {
+         "key": "http.url",
+         "type": "string",
+         "value": "http://agent:8010/prompt"
+        },
+        {
+         "key": "user_agent.original",
+         "type": "string",
+         "value": "python-requests/2.34.2"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "client"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        },
+        {
+         "key": "otel.status_description",
+         "type": "string",
+         "value": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207713637789,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "exception"
+          },
+          {
+           "key": "exception.escaped",
+           "type": "string",
+           "value": "False"
+          },
+          {
+           "key": "exception.message",
+           "type": "string",
+           "value": "HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+          },
+          {
+           "key": "exception.stacktrace",
+           "type": "string",
+           "value": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 204, in _new_conn\n    sock = connection.create_connection(\n        (self._dns_host, self.port),\n    ...<2 lines>...\n        socket_options=self.socket_options,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/connection.py\", line 60, in create_connection\n    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):\n               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_socketcommon.py\", line 221, in getaddrinfo\n    addrlist = get_hub().resolver.getaddrinfo(host, port, family, type, proto, flags)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/resolver/thread.py\", line 63, in getaddrinfo\n    return self.pool.apply(_socket.getaddrinfo, args, kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/pool.py\", line 161, in apply\n    return self.spawn(func, *args, **kwds).get()\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"src/gevent/event.py\", line 332, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 362, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 350, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 330, in gevent._gevent_cevent.AsyncResult._raise_exception\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_compat.py\", line 89, in reraise\n    raise value.with_traceback(tb)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/threadpool.py\", line 173, in __run_task\n    thread_result.set(func(*args, **kwargs))\n    ^^^^^^^^^^^\nsocket.gaierror: [Errno -2] Name or service not known\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 788, in urlopen\n    response = self._make_request(\n        conn,\n    ...<10 lines>...\n        **response_kw,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 493, in _make_request\n    conn.request(\n    ~~~~~~~~~~~~^\n        method,\n        ^^^^^^^\n    ...<6 lines>...\n        enforce_content_length=enforce_content_length,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 500, in request\n    self.endheaders()\n    ~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n    ~~~~~~~~~^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1085, in send\n    self.connect()\n    ~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 331, in connect\n    self.sock = self._new_conn()\n                ~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 211, in _new_conn\n    raise NameResolutionError(self.host, self, e) from e\nurllib3.exceptions.NameResolutionError: HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 696, in send\n    resp = conn.urlopen(\n        method=request.method,\n    ...<9 lines>...\n        chunked=chunked,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/urllib3/__init__.py\", line 440, in instrumented_urlopen\n    return wrapped(*args, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 842, in urlopen\n    retries = retries.increment(\n        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/retry.py\", line 543, in increment\n    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nurllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/trace/__init__.py\", line 608, in use_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/sdk/trace/__init__.py\", line 1177, in start_as_current_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 494, in instrumented_send\n    raise exception.with_traceback(exception.__traceback__)\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 421, in instrumented_send\n    result = wrapped_send(\n        self, request, **kwargs\n    )  # *** PROCEED\n  File \"/usr/local/lib/python3.14/site-packages/requests/sessions.py\", line 784, in send\n    r = adapter.send(request, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 729, in send\n    raise ConnectionError(e, request=request)\nrequests.exceptions.ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n"
+          },
+          {
+           "key": "exception.type",
+           "type": "string",
+           "value": "requests.exceptions.ConnectionError"
+          }
+         ]
+        }
+       ],
+       "processID": "p1",
+       "warnings": null
+      },
+      {
+       "traceID": "df624a83aa7c322f7926f5382bf736bd",
+       "spanID": "378c82218ec5466e",
+       "operationName": "user_ask_agent",
+       "references": [],
+       "startTime": 1795207713624762,
+       "duration": 15781,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "locustfile"
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "type": "string",
+         "value": "[{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"What currencies are supported by the Astronomy Shop?\"}]}]"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "internal"
+        }
+       ],
+       "logs": [],
+       "processID": "p1",
+       "warnings": null
+      }
+     ],
+     "processes": {
+      "p1": {
+       "serviceName": "load-generator",
+       "tags": [
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "python"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.42.0"
+        }
+       ]
+      }
+     },
+     "warnings": null
+    },
+    {
+     "traceID": "3b1816d2d1170c1c455e7e634d04cdad",
+     "spans": [
+      {
+       "traceID": "3b1816d2d1170c1c455e7e634d04cdad",
+       "spanID": "138b3017c28ff6c8",
+       "operationName": "POST",
+       "references": [
+        {
+         "refType": "CHILD_OF",
+         "traceID": "3b1816d2d1170c1c455e7e634d04cdad",
+         "spanID": "db31d00ccf045aa2"
+        }
+       ],
+       "startTime": 1795207701388187,
+       "duration": 12034,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "opentelemetry.instrumentation.requests"
+        },
+        {
+         "key": "otel.scope.version",
+         "type": "string",
+         "value": "0.63b0"
+        },
+        {
+         "key": "http.method",
+         "type": "string",
+         "value": "POST"
+        },
+        {
+         "key": "http.url",
+         "type": "string",
+         "value": "http://agent:8010/prompt"
+        },
+        {
+         "key": "user_agent.original",
+         "type": "string",
+         "value": "python-requests/2.34.2"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "client"
+        },
+        {
+         "key": "otel.status_code",
+         "type": "string",
+         "value": "ERROR"
+        },
+        {
+         "key": "error",
+         "type": "bool",
+         "value": true
+        },
+        {
+         "key": "otel.status_description",
+         "type": "string",
+         "value": "ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+        }
+       ],
+       "logs": [
+        {
+         "timestamp": 1795207701400157,
+         "fields": [
+          {
+           "key": "event",
+           "type": "string",
+           "value": "exception"
+          },
+          {
+           "key": "exception.escaped",
+           "type": "string",
+           "value": "False"
+          },
+          {
+           "key": "exception.message",
+           "type": "string",
+           "value": "HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))"
+          },
+          {
+           "key": "exception.stacktrace",
+           "type": "string",
+           "value": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 204, in _new_conn\n    sock = connection.create_connection(\n        (self._dns_host, self.port),\n    ...<2 lines>...\n        socket_options=self.socket_options,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/connection.py\", line 60, in create_connection\n    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):\n               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_socketcommon.py\", line 221, in getaddrinfo\n    addrlist = get_hub().resolver.getaddrinfo(host, port, family, type, proto, flags)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/resolver/thread.py\", line 63, in getaddrinfo\n    return self.pool.apply(_socket.getaddrinfo, args, kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/site-packages/gevent/pool.py\", line 161, in apply\n    return self.spawn(func, *args, **kwds).get()\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"src/gevent/event.py\", line 332, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 362, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 350, in gevent._gevent_cevent.AsyncResult.get\n  File \"src/gevent/event.py\", line 330, in gevent._gevent_cevent.AsyncResult._raise_exception\n  File \"/usr/local/lib/python3.14/site-packages/gevent/_compat.py\", line 89, in reraise\n    raise value.with_traceback(tb)\n  File \"/usr/local/lib/python3.14/site-packages/gevent/threadpool.py\", line 173, in __run_task\n    thread_result.set(func(*args, **kwargs))\n    ^^^^^^^^^^^\nsocket.gaierror: [Errno -2] Name or service not known\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 788, in urlopen\n    response = self._make_request(\n        conn,\n    ...<10 lines>...\n        **response_kw,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 493, in _make_request\n    conn.request(\n    ~~~~~~~~~~~~^\n        method,\n        ^^^^^^^\n    ...<6 lines>...\n        enforce_content_length=enforce_content_length,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 500, in request\n    self.endheaders()\n    ~~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1381, in endheaders\n    self._send_output(message_body, encode_chunked=encode_chunked)\n    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1141, in _send_output\n    self.send(msg)\n    ~~~~~~~~~^^^^^\n  File \"/usr/local/lib/python3.14/http/client.py\", line 1085, in send\n    self.connect()\n    ~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 331, in connect\n    self.sock = self._new_conn()\n                ~~~~~~~~~~~~~~^^\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connection.py\", line 211, in _new_conn\n    raise NameResolutionError(self.host, self, e) from e\nurllib3.exceptions.NameResolutionError: HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 696, in send\n    resp = conn.urlopen(\n        method=request.method,\n    ...<9 lines>...\n        chunked=chunked,\n    )\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/urllib3/__init__.py\", line 440, in instrumented_urlopen\n    return wrapped(*args, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/connectionpool.py\", line 842, in urlopen\n    retries = retries.increment(\n        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]\n    )\n  File \"/usr/local/lib/python3.14/site-packages/urllib3/util/retry.py\", line 543, in increment\n    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nurllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/trace/__init__.py\", line 608, in use_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/sdk/trace/__init__.py\", line 1177, in start_as_current_span\n    yield span\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 494, in instrumented_send\n    raise exception.with_traceback(exception.__traceback__)\n  File \"/usr/local/lib/python3.14/site-packages/opentelemetry/instrumentation/requests/__init__.py\", line 421, in instrumented_send\n    result = wrapped_send(\n        self, request, **kwargs\n    )  # *** PROCEED\n  File \"/usr/local/lib/python3.14/site-packages/requests/sessions.py\", line 784, in send\n    r = adapter.send(request, **kwargs)\n  File \"/usr/local/lib/python3.14/site-packages/requests/adapters.py\", line 729, in send\n    raise ConnectionError(e, request=request)\nrequests.exceptions.ConnectionError: HTTPConnectionPool(host='agent', port=8010): Max retries exceeded with url: /prompt (Caused by NameResolutionError(\"HTTPConnection(host='agent', port=8010): Failed to resolve 'agent' ([Errno -2] Name or service not known)\"))\n"
+          },
+          {
+           "key": "exception.type",
+           "type": "string",
+           "value": "requests.exceptions.ConnectionError"
+          }
+         ]
+        }
+       ],
+       "processID": "p1",
+       "warnings": null
+      },
+      {
+       "traceID": "3b1816d2d1170c1c455e7e634d04cdad",
+       "spanID": "db31d00ccf045aa2",
+       "operationName": "user_ask_agent",
+       "references": [],
+       "startTime": 1795207701387338,
+       "duration": 13447,
+       "tags": [
+        {
+         "key": "otel.scope.name",
+         "type": "string",
+         "value": "locustfile"
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "type": "string",
+         "value": "[{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": \"What currencies are supported by the Astronomy Shop?\"}]}]"
+        },
+        {
+         "key": "span.kind",
+         "type": "string",
+         "value": "internal"
+        }
+       ],
+       "logs": [],
+       "processID": "p1",
+       "warnings": null
+      }
+     ],
+     "processes": {
+      "p1": {
+       "serviceName": "load-generator",
+       "tags": [
+        {
+         "key": "host.arch",
+         "type": "string",
+         "value": "arm64"
+        },
+        {
+         "key": "host.cpu.cache.l2.size",
+         "type": "int64",
+         "value": 0
+        },
+        {
+         "key": "host.cpu.family",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.model.id",
+         "type": "string",
+         "value": "0x000"
+        },
+        {
+         "key": "host.cpu.model.name",
+         "type": "string",
+         "value": ""
+        },
+        {
+         "key": "host.cpu.stepping",
+         "type": "string",
+         "value": "0"
+        },
+        {
+         "key": "host.cpu.vendor.id",
+         "type": "string",
+         "value": "Apple"
+        },
+        {
+         "key": "host.name",
+         "type": "string",
+         "value": "docker-desktop"
+        },
+        {
+         "key": "os.description",
+         "type": "string",
+         "value": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64"
+        },
+        {
+         "key": "os.type",
+         "type": "string",
+         "value": "linux"
+        },
+        {
+         "key": "service.criticality",
+         "type": "string",
+         "value": "low"
+        },
+        {
+         "key": "service.namespace",
+         "type": "string",
+         "value": "opentelemetry-demo"
+        },
+        {
+         "key": "service.version",
+         "type": "string",
+         "value": "3.0.0"
+        },
+        {
+         "key": "telemetry.sdk.language",
+         "type": "string",
+         "value": "python"
+        },
+        {
+         "key": "telemetry.sdk.name",
+         "type": "string",
+         "value": "opentelemetry"
+        },
+        {
+         "key": "telemetry.sdk.version",
+         "type": "string",
+         "value": "1.42.0"
+        }
+       ]
+      }
+     },
+     "warnings": null
+    }
+   ],
+   "total": 0,
+   "limit": 0,
+   "offset": 0,
+   "errors": null
+  }
+ }
+}

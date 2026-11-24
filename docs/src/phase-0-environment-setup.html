@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 0 — Environment Setup</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.2pt; line-height:1.48; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; letter-spacing:-0.3px; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.6pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:9pt; break-inside:auto; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figure img { width:100%; border:1px solid var(--line); border-radius:4px; display:block; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:150mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .tag { display:inline-block; font-size:7.6pt; font-weight:700; padding:0.5pt 5pt; border-radius:8px; }
+  .tag.hit { background:var(--bad-soft); color:var(--bad); }
+  .tag.gen { background:#eef0f4; color:var(--muted); }
+  .ok { color:var(--ok); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .toc li { break-inside:avoid; }
+  .qa dt { font-weight:700; margin-top:7pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 0</div>
+  <h1>Environment Setup &amp; the OpenTelemetry Demo</h1>
+  <div class="sub">What we installed, ran, verified and fixed so that a 28-container microservices shop produces real metrics, logs and traces for the AI agents we build next.</div>
+  <table>
+    <tr><td>Date completed</td><td>21 November 2026</td></tr>
+    <tr><td>Demo release</td><td>open-telemetry/opentelemetry-demo <b>3.1.0</b> (code tag and image tag pinned)</td></tr>
+    <tr><td>Host</td><td>MacBook, Apple M4 (arm64), 16 GB RAM, macOS (Darwin 25.6.0)</td></tr>
+    <tr><td>Container runtime</td><td>Docker Desktop 4.83.0 · Engine 29.6.2 · Compose v5.3.1 · 10 GB RAM to Docker</td></tr>
+    <tr><td>Project root</td><td><code>~/Desktop/Incident-response-copilot/</code></td></tr>
+    <tr><td>Result</td><td><span class="ok">28 / 28 containers running · all three telemetry signals verified end-to-end</span></td></tr>
+  </table>
+</section>
+
+<!-- ============================== TOC ============================== -->
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>Project overview and Phase 0 objectives</li>
+  <li>What we actually completed</li>
+  <li>The OpenTelemetry Demo and why we need microservices</li>
+  <li>Docker and Docker Compose concepts</li>
+  <li>Our environment and setup steps</li>
+  <li>Services and architecture</li>
+  <li>OpenTelemetry and the collection pipeline</li>
+  <li>Metrics vs logs vs traces</li>
+  <li>The backends: Prometheus, Jaeger, OpenSearch, Grafana</li>
+  <li>How to inspect metrics, logs and traces</li>
+  <li>Start, stop and inspect: command reference</li>
+  <li>Feature flags, fault injection and the security boundary</li>
+  <li>Problems we hit and how we solved them</li>
+  <li>Other common errors and their fixes</li>
+  <li>Known limitations and baseline noise</li>
+  <li>Key concepts and interview questions</li>
+  <li>Checklist, file locations and Phase 1 preview</li>
+</ol>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<h2>1. Project overview and Phase 0 objectives</h2>
+<p>The <b>Incident Response Copilot</b> is a multi-agent AI system that will <i>detect</i>, <i>investigate</i> and help <i>diagnose</i> failures in a microservices application, using only the application's telemetry, the same evidence a human on-call engineer would use.</p>
+<p>To build and test it we need a realistic system that (a) has many interacting services, (b) is fully instrumented, and (c) can be broken on demand in known ways. The <b>OpenTelemetry Demo</b> ("Astronomy Shop") meets all three.</p>
+<p><b>Phase 0 objectives</b> (no AI or detection logic yet):</p>
+<ul>
+  <li>Prepare the machine (Git, Docker, Docker Compose) and run the full demo locally.</li>
+  <li>Understand its services, its telemetry pipeline and the observability backends.</li>
+  <li>Verify that metrics, logs and traces flow end-to-end, and learn to inspect each one.</li>
+  <li>Understand how faults are injected (feature flags) <b>without</b> exposing that hidden state to future diagnosis agents.</li>
+</ul>
+
+<!-- ============================== 2 ============================== -->
+<h2>2. What we actually completed</h2>
+<table>
+  <tr><th style="width:34%">Step</th><th>Outcome (verified)</th></tr>
+  <tr><td>Environment check</td><td>Git 2.54.0, Docker 29.6.2, Compose v5.3.1 present. Docker daemon was <i>not</i> running at first; started Docker Desktop and raised its memory from 7.8 GB to 10 GB.</td></tr>
+  <tr><td>Clone the demo</td><td>Shallow clone of tag <code>3.1.0</code> into <code>opentelemetry-demo/</code>.</td></tr>
+  <tr><td>Pin image versions</td><td><code>.env</code> had <code>DEMO_VERSION=latest</code>; we set <code>DEMO_VERSION=3.1.0</code> in <code>.env.override</code> so the images match the code.</td></tr>
+  <tr><td>Fix image downloads</td><td>All pulls failed with <code>TLS handshake timeout</code>. Root cause: the college network's proxy auto-config (WPAD/PAC) is broken for Docker Desktop. Fixed by configuring Docker Desktop's proxy manually (§13).</td></tr>
+  <tr><td>Start the stack</td><td>28 images (3.80 GB) pulled; <code>make start</code> exit 0; <b>28/28 containers running</b>, 0 restarts, 0 OOM kills.</td></tr>
+  <tr><td>Verify UIs</td><td>Shop, Jaeger, Grafana, Load generator, Feature-flag UI and Telemetry docs return HTTP 200 via <code>:8080</code>; Prometheus ready on <code>:9090</code>.</td></tr>
+  <tr><td>Verify telemetry</td><td>Traces from 20 services in Jaeger; 23 metric jobs / 5,523 series in Prometheus; logs from 17 services in OpenSearch.</td></tr>
+  <tr><td>Fix log loss</td><td>Found the Collector dropping logs (OpenSearch <code>mapper_parsing_exception</code>). Fixed with a Collector transform processor in <code>otelcol-config-extras.yml</code> (§13).</td></tr>
+  <tr><td>Feature-flag analysis</td><td>18 flags catalogued; proved from a live trace that flag keys and variants leak into telemetry; designed the isolation boundary for Phase 1.</td></tr>
+</table>
+
+<!-- ============================== 3 ============================== -->
+<h2>3. The OpenTelemetry Demo and why we need microservices</h2>
+<p>The OpenTelemetry Demo is the official reference application of the OpenTelemetry project: an online telescope shop split into about 15 services written in <b>10+ languages</b> (Go, C#, Java, Kotlin, Python, Node.js/TypeScript, Ruby, PHP, Rust, C++, Elixir), each instrumented with OpenTelemetry. It includes a load generator that simulates shoppers around the clock, a Kafka-based asynchronous path, two data stores, a feature-flag service for fault injection, and a complete observability stack.</p>
+<h3>Why a multi-microservice application?</h3>
+<ul>
+  <li><b>Failures propagate.</b> If <code>payment</code> fails, users see errors at <code>frontend</code> and <code>checkout</code>. The symptom shows up far from the cause, and finding the cause is exactly what our copilot must learn to do.</li>
+  <li><b>Distributed tracing only matters across services.</b> One checkout request we captured crossed <b>12 services in 137 spans</b> (Figure 4). A monolith can't produce that evidence.</li>
+  <li><b>Heterogeneity is realistic.</b> Different languages and runtimes produce different logs, metric names and failure modes (JVM garbage collection, .NET, Node event loop).</li>
+  <li><b>Reproducible incidents.</b> Feature flags trigger known faults on demand, so we can score the copilot's diagnoses against ground truth.</li>
+</ul>
+
+<!-- ============================== 4 ============================== -->
+<h2>4. Docker and Docker Compose concepts</h2>
+<table>
+  <tr><th style="width:22%">Concept</th><th>Meaning</th><th style="width:36%">Example from our setup</th></tr>
+  <tr><td>Image</td><td>Read-only, versioned package: filesystem + app + runtime.</td><td><code>ghcr.io/open-telemetry/demo:3.1.0-cart</code> already contains .NET; we never installed .NET.</td></tr>
+  <tr><td>Container</td><td>A running, isolated process created from an image.</td><td>The <code>cart</code> container.</td></tr>
+  <tr><td>Registry</td><td>Server that stores images.</td><td>ghcr.io, quay.io, Docker Hub.</td></tr>
+  <tr><td>Multi-arch image</td><td>One tag, several CPU builds.</td><td>Docker pulled <code>arm64</code> variants for the M4 automatically.</td></tr>
+  <tr><td>Daemon vs client</td><td><code>docker</code> CLI is a client; <code>dockerd</code> does the work. On macOS it runs inside a Linux VM managed by Docker Desktop.</td><td><code>docker --version</code> worked while <code>docker info</code> failed: client present, daemon not running.</td></tr>
+  <tr><td>Network + DNS</td><td>Compose creates a private bridge network; containers reach each other by service name.</td><td><code>checkout</code> calls <code>cart:7070</code>, never <code>localhost</code>.</td></tr>
+  <tr><td>Port publishing</td><td><code>"8080:8080"</code> maps host→container. A bare <code>"9200"</code> publishes to a <b>random</b> host port.</td><td>Only 8080, 10000 and 9090 are fixed; OpenSearch was on <code>localhost:57777</code> this run.</td></tr>
+  <tr><td>Bind mount</td><td>Host file or folder mounted into a container.</td><td><code>src/flagd/</code> mounted into both <code>flagd</code> and <code>flagd-ui</code>.</td></tr>
+  <tr><td>Healthcheck / depends_on</td><td>Container health tests; start order can wait for <i>healthy</i>, not just <i>started</i>.</td><td>Kafka consumers show <code>Waiting</code> until Kafka is healthy.</td></tr>
+  <tr><td>Restart policy</td><td><code>unless-stopped</code> restarts containers after crashes and daemon restarts.</td><td>After the Mac slept, containers came back on their own.</td></tr>
+  <tr><td>Resource limits</td><td>Memory ceiling per container; exceeding it means an OOM kill (exit 137).</td><td>Sum of limits = 7.71 GB, which is why Docker got 10 GB.</td></tr>
+  <tr><td>Compose layering</td><td>Several <code>-f</code> files merged in order; later files add or override.</td><td>core + full + observability + extras = 28 services.</td></tr>
+  <tr><td>Env files</td><td><code>--env-file</code> supplies variables; later files win.</td><td><code>.env</code> then <code>.env.override</code>.</td></tr>
+</table>
+<h3>The demo's Compose layers (measured with <code>docker compose config --services</code>)</h3>
+<table>
+  <tr><th>File</th><th>Adds</th><th>Count</th></tr>
+  <tr><td><code>compose.yaml</code></td><td>Shop services, otel-collector, flagd, flagd-ui, valkey-cart, astronomy-db, load-generator, frontend-proxy, telemetry-docs</td><td>20</td></tr>
+  <tr><td><code>compose.full.yaml</code></td><td>kafka, accounting, fraud-detection</td><td>+3</td></tr>
+  <tr><td><code>compose.observability.yaml</code> + <code>compose.extras.yaml</code></td><td>jaeger, prometheus, grafana, opensearch, opamp-server</td><td>+5</td></tr>
+  <tr><td><code>compose.agent.yaml</code> <span class="muted">(not used)</span></td><td>agent, chatbot, mcp (the demo's own AI add-on, needs an LLM API key)</td><td>+3</td></tr>
+</table>
+
+<!-- ============================== 5 ============================== -->
+<h2>5. Our environment and setup steps</h2>
+<pre><code># 1. Check tools (read-only)
+git --version                 # git version 2.54.0 (Apple Git-157)
+docker --version              # Docker version 29.6.2
+docker compose version        # Docker Compose version v5.3.1
+docker info                   # first run: "failed to connect to the docker API ... docker.sock"
+                              #   -> started Docker Desktop, set Memory = 10 GB
+
+# 2. Find the latest release and clone it (shallow, pinned)
+git ls-remote --tags --refs https://github.com/open-telemetry/opentelemetry-demo.git
+git clone --branch 3.1.0 --depth 1 https://github.com/open-telemetry/opentelemetry-demo.git opentelemetry-demo
+
+# 3. Pin image tags to the same release (appended to opentelemetry-demo/.env.override)
+DEMO_VERSION=3.1.0
+
+# 4. Pre-pull images with limited parallelism, then start
+COMPOSE_PARALLEL_LIMIT=4 docker compose --env-file .env --env-file .env.override \
+  -f compose.yaml -f compose.full.yaml -f compose.observability.yaml -f compose.extras.yaml pull
+make start</code></pre>
+<p><code>make start</code> expands to:</p>
+<pre><code>docker compose --env-file .env --env-file .env.override \
+  -f compose.yaml -f compose.full.yaml -f compose.observability.yaml -f compose.extras.yaml \
+  up --force-recreate --remove-orphans --detach</code></pre>
+<ul>
+  <li><code>up</code>: create the network and containers and start them (pulling any missing images).</li>
+  <li><code>--force-recreate</code>: recreate containers even if nothing changed, for a clean state.</li>
+  <li><code>--remove-orphans</code>: delete containers from services no longer defined.</li>
+  <li><code>--detach</code>: run in the background.</li>
+</ul>
+<div class="callout"><b>Why pin versions?</b>A shallow clone of tag 3.1.0 plus <code>DEMO_VERSION=3.1.0</code> means the configs on disk and the running images are the same release, and every command in this document stays reproducible.</div>
+
+<!-- ============================== 6 ============================== -->
+<h2 class="page-break">6. Services and architecture</h2>
+<figure>
+<svg viewBox="0 0 810 560" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6475"/></marker>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a25a00"/></marker>
+  </defs>
+  <style>
+    .b{fill:#fff;stroke:#2f5bd3;stroke-width:1.3;rx:6}
+    .d{fill:#f1f4f9;stroke:#5b6475;stroke-width:1.2;rx:6}
+    .k{fill:#fff4e5;stroke:#a25a00;stroke-width:1.3;rx:6}
+    .f{fill:#fdecea;stroke:#b42318;stroke-width:1.3;rx:6}
+    .t{font-size:11.5px;fill:#1d2330;text-anchor:middle;font-weight:600}
+    .s{font-size:9.5px;fill:#5b6475;text-anchor:middle}
+    .l{stroke:#5b6475;stroke-width:1.2;fill:none}
+    .lk{stroke:#a25a00;stroke-width:1.3;fill:none;stroke-dasharray:4 3}
+    .n{font-size:9.5px;fill:#5b6475}
+  </style>
+  <!-- clients -->
+  <rect class="d" x="110" y="12" width="190" height="40"/><text class="t" x="205" y="30">load-generator</text><text class="s" x="205" y="44">Python · Locust (simulated users)</text>
+  <rect class="d" x="330" y="12" width="190" height="40"/><text class="t" x="425" y="30">frontend-web</text><text class="s" x="425" y="44">browser-side spans</text>
+  <path class="l" d="M205,52 L285,86" marker-end="url(#a)"/><path class="l" d="M425,52 L335,86" marker-end="url(#a)"/>
+  <!-- proxy -->
+  <rect class="b" x="190" y="88" width="230" height="40"/><text class="t" x="305" y="106">frontend-proxy</text><text class="s" x="305" y="120">Envoy · the only entry point · :8080</text>
+  <rect class="b" x="470" y="88" width="150" height="40"/><text class="t" x="545" y="106">image-provider</text><text class="s" x="545" y="120">nginx</text>
+  <path class="l" d="M420,108 L468,108" marker-end="url(#a)"/>
+  <text class="n" x="630" y="102">also routes /jaeger/ui, /grafana,</text><text class="n" x="630" y="114">/loadgen, /feature, /telemetry</text>
+  <path class="l" d="M305,128 L305,158" marker-end="url(#a)"/>
+  <!-- frontend -->
+  <rect class="b" x="190" y="160" width="230" height="40"/><text class="t" x="305" y="178">frontend</text><text class="s" x="305" y="192">TypeScript · Next.js</text>
+  <!-- bus to row A -->
+  <path class="l" d="M305,200 L305,222"/><path class="l" d="M65,222 L713,222"/>
+  <g>
+    <path class="l" d="M65,222 L65,248" marker-end="url(#a)"/><path class="l" d="M173,222 L173,248" marker-end="url(#a)"/><path class="l" d="M281,222 L281,248" marker-end="url(#a)"/><path class="l" d="M389,222 L389,248" marker-end="url(#a)"/><path class="l" d="M497,222 L497,248" marker-end="url(#a)"/><path class="l" d="M605,222 L605,248" marker-end="url(#a)"/><path class="l" d="M713,222 L713,248" marker-end="url(#a)"/>
+  </g>
+  <!-- row A -->
+  <rect class="b" x="15" y="250" width="100" height="40"/><text class="t" x="65" y="268">ad</text><text class="s" x="65" y="282">Java</text>
+  <rect class="b" x="123" y="250" width="100" height="40"/><text class="t" x="173" y="268">recommendation</text><text class="s" x="173" y="282">Python</text>
+  <rect class="b" x="231" y="250" width="100" height="40"/><text class="t" x="281" y="268">product-catalog</text><text class="s" x="281" y="282">Go</text>
+  <rect class="b" x="339" y="250" width="100" height="40"/><text class="t" x="389" y="268">currency</text><text class="s" x="389" y="282">C++</text>
+  <rect class="b" x="447" y="250" width="100" height="40"/><text class="t" x="497" y="268">cart</text><text class="s" x="497" y="282">C# / .NET</text>
+  <rect class="b" x="555" y="250" width="100" height="40"/><text class="t" x="605" y="268">shipping</text><text class="s" x="605" y="282">Rust</text>
+  <rect class="b" x="663" y="250" width="120" height="40"/><text class="t" x="723" y="268">checkout</text><text class="s" x="723" y="282">Go · orchestrator</text>
+  <path class="l" d="M223,270 L229,270" marker-end="url(#a)"/>
+  <!-- row B data stores & downstream -->
+  <rect class="d" x="231" y="340" width="100" height="40"/><text class="t" x="281" y="358">astronomy-db</text><text class="s" x="281" y="372">PostgreSQL 18.4</text>
+  <path class="l" d="M281,290 L281,338" marker-end="url(#a)"/>
+  <rect class="d" x="447" y="340" width="100" height="40"/><text class="t" x="497" y="358">valkey-cart</text><text class="s" x="497" y="372">Valkey (Redis fork)</text>
+  <path class="l" d="M497,290 L497,338" marker-end="url(#a)"/>
+  <rect class="b" x="555" y="340" width="100" height="40"/><text class="t" x="605" y="358">quote</text><text class="s" x="605" y="372">PHP</text>
+  <path class="l" d="M605,290 L605,338" marker-end="url(#a)"/>
+  <rect class="b" x="663" y="320" width="120" height="34"/><text class="t" x="723" y="335">payment</text><text class="s" x="723" y="348">Node.js</text>
+  <rect class="b" x="663" y="362" width="120" height="34"/><text class="t" x="723" y="377">email</text><text class="s" x="723" y="390">Ruby</text>
+  <path class="l" d="M790,290 L790,337 L785,337" marker-end="url(#a)"/><path class="l" d="M790,337 L790,379 L785,379" marker-end="url(#a)"/>
+  <text class="n" x="663" y="306">also → cart, currency,</text><text class="n" x="663" y="316">product-catalog, shipping</text>
+  <!-- kafka path -->
+  <rect class="k" x="663" y="420" width="120" height="40"/><text class="t" x="723" y="438">kafka</text><text class="s" x="723" y="452">topic "orders"</text>
+  <path class="lk" d="M790,379 L790,440 L785,440" marker-end="url(#ak)"/>
+  <rect class="k" x="447" y="490" width="120" height="40"/><text class="t" x="507" y="508">accounting</text><text class="s" x="507" y="522">C# · consumer</text>
+  <rect class="k" x="590" y="490" width="120" height="40"/><text class="t" x="650" y="508">fraud-detection</text><text class="s" x="650" y="522">Kotlin · consumer</text>
+  <path class="lk" d="M700,460 L660,488" marker-end="url(#ak)"/><path class="lk" d="M690,460 L540,488" marker-end="url(#ak)"/>
+  <path class="l" d="M470,490 L320,382" marker-end="url(#a)"/>
+  <!-- flags -->
+  <rect class="f" x="15" y="420" width="180" height="40"/><text class="t" x="105" y="438">flagd</text><text class="s" x="105" y="452">feature-flag server · v0.16.0</text>
+  <rect class="f" x="15" y="490" width="180" height="40"/><text class="t" x="105" y="508">flagd-ui</text><text class="s" x="105" y="522">Elixir · /feature/ (writes JSON)</text>
+  <path class="l" d="M105,490 L105,462" marker-end="url(#a)"/>
+  <text class="n" x="205" y="432">queried by ad, cart, payment,</text><text class="n" x="205" y="444">recommendation, fraud-detection,</text><text class="n" x="205" y="456">frontend-proxy, load-generator</text>
+  <!-- footer note -->
+  <text class="n" x="15" y="552">Every service exports OTLP telemetry to otel-collector (Figure 2). Solid = synchronous call (observed in Jaeger); dashed = asynchronous Kafka path (from config).</text>
+</svg>
+<figcaption>Figure 1. Architecture of the 3.1.0 demo as deployed. Call edges are taken from Jaeger's observed dependency data; database and Kafka links come from each service's Compose environment (<code>DB_CONNECTION_STRING</code>, <code>VALKEY_ADDR</code>, <code>KAFKA_ADDR</code>).</figcaption>
+</figure>
+
+<table>
+  <tr><th style="width:20%">Service</th><th style="width:16%">Language / tech</th><th>Role</th></tr>
+  <tr><td>frontend-proxy</td><td>Envoy</td><td>Single entry point on <code>localhost:8080</code>; routes the shop and all observability UIs.</td></tr>
+  <tr><td>frontend</td><td>TypeScript, Next.js</td><td>Web UI and API gateway; fans out to backend services over gRPC/HTTP.</td></tr>
+  <tr><td>product-catalog</td><td>Go</td><td>Product list, stored in PostgreSQL (<code>astronomy-db</code>).</td></tr>
+  <tr><td>cart</td><td>C# (.NET)</td><td>Shopping cart, stored in <code>valkey-cart</code>.</td></tr>
+  <tr><td>checkout</td><td>Go</td><td>Orchestrates an order: cart, currency, product-catalog, shipping, payment, email; publishes to Kafka.</td></tr>
+  <tr><td>currency</td><td>C++</td><td>Currency conversion.</td></tr>
+  <tr><td>payment</td><td>Node.js</td><td>Charges the (fake) card.</td></tr>
+  <tr><td>shipping → quote</td><td>Rust → PHP</td><td>Shipping cost; shipping calls quote.</td></tr>
+  <tr><td>email</td><td>Ruby</td><td>Order confirmation.</td></tr>
+  <tr><td>recommendation</td><td>Python</td><td>Product recommendations (calls product-catalog).</td></tr>
+  <tr><td>ad</td><td>Java</td><td>Contextual ads.</td></tr>
+  <tr><td>image-provider</td><td>nginx</td><td>Static product images.</td></tr>
+  <tr><td>kafka → accounting, fraud-detection</td><td>Kafka; C#; Kotlin</td><td>Asynchronous order processing; accounting also writes to PostgreSQL.</td></tr>
+  <tr><td>load-generator</td><td>Python, Locust</td><td>Constant simulated traffic (5 users, ~1 req/s) so telemetry always exists.</td></tr>
+  <tr><td>flagd, flagd-ui</td><td>Go; Elixir</td><td>Feature-flag server and editor, used for fault injection (§12).</td></tr>
+  <tr><td>otel-collector</td><td>Collector-contrib 0.159.0</td><td>Receives, processes and routes all telemetry.</td></tr>
+  <tr><td>jaeger / prometheus / opensearch / grafana</td><td>2.19.0 / v3.13.1 / 3.7.0 / 13.1.0</td><td>Trace store / metrics store / log store / dashboards.</td></tr>
+  <tr><td>opamp-server</td><td>OpAMP</td><td>Remote management channel for the Collector (it reports its effective config and health).</td></tr>
+  <tr><td>telemetry-docs</td><td>Weaver + nginx</td><td>Generated documentation of the demo's telemetry schema (<code>/telemetry/</code>).</td></tr>
+</table>
+<figure>
+  <img src="../assets/screenshots/01-shop-frontend.png" alt="Astronomy Shop home page">
+  <figcaption>Figure 3. The shop running at http://localhost:8080 (headless Chrome capture, 21 Nov 2026).</figcaption>
+</figure>
+
+<!-- ============================== 7 ============================== -->
+<h2 class="page-break">7. OpenTelemetry and the collection pipeline</h2>
+<p><b>OpenTelemetry (OTel)</b> is a vendor-neutral standard and set of SDKs for producing telemetry. Each service uses an OTel SDK in its own language. Instrumentation libraries create spans, metrics and logs automatically for gRPC, HTTP, Kafka, SQL and similar, and developers add custom ones (e.g. <code>app.cart.items.count</code>). Everything is sent using the same wire protocol, <b>OTLP</b>, to the <b>OpenTelemetry Collector</b>.</p>
+<p>The Collector is a pipeline engine with four kinds of components:</p>
+<ul>
+  <li><b>Receivers</b> bring data in (push: <code>otlp</code> on 4317 gRPC / 4318 HTTP; pull: <code>docker_stats</code>, <code>host_metrics</code>, <code>redis</code>, <code>postgresql</code>, <code>nginx</code>, <code>kafkametrics</code>, <code>http_check</code>).</li>
+  <li><b>Processors</b> modify data in flight (add resource attributes, enforce memory limits, redact PII, rename fields).</li>
+  <li><b>Exporters</b> send data to backends.</li>
+  <li><b>Connectors</b> are an exporter for one pipeline and a receiver for another. <code>span_metrics</code> turns every span into RED metrics (Rate, Errors, Duration).</li>
+</ul>
+<figure>
+<svg viewBox="0 0 810 380" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="qp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6475"/></marker></defs>
+  <style>
+    .qbx{fill:#fff;stroke:#2f5bd3;stroke-width:1.3}
+    .qcx{fill:#f7f9fd;stroke:#2f5bd3;stroke-width:1.5}
+    .qbe{fill:#f1f4f9;stroke:#5b6475;stroke-width:1.2}
+    .qus{fill:#e8f6ee;stroke:#1f7a45;stroke-width:1.2}
+    .qh{font-size:12px;font-weight:700;fill:#1d2330}
+    .qt{font-size:10px;fill:#1d2330}
+    .qm{font-size:9.2px;fill:#5b6475}
+    .qln{stroke:#5b6475;stroke-width:1.3;fill:none}
+  </style>
+  <rect class="qbx" x="10" y="120" width="120" height="120" rx="8"/>
+  <text class="qh" x="70" y="150" text-anchor="middle">Services</text>
+  <text class="qt" x="70" y="168" text-anchor="middle">OTel SDKs in</text><text class="qt" x="70" y="181" text-anchor="middle">10+ languages</text>
+  <text class="qm" x="70" y="204" text-anchor="middle">traces · metrics</text><text class="qm" x="70" y="216" text-anchor="middle">logs (· profiles)</text>
+  <path class="qln" d="M130,180 L168,180" marker-end="url(#qp)"/>
+  <text class="qm" x="133" y="172">OTLP</text><text class="qm" x="135" y="196">4317</text><text class="qm" x="135" y="207">4318</text>
+  <rect class="qcx" x="170" y="20" width="440" height="340" rx="10"/>
+  <text class="qh" x="390" y="40" text-anchor="middle">otel-collector (contrib 0.159.0) — 4 merged config files</text>
+  <!-- traces -->
+  <rect class="qbx" x="182" y="54" width="416" height="78" rx="6"/>
+  <text class="qh" x="192" y="71">traces</text>
+  <text class="qt" x="192" y="88">recv: otlp</text>
+  <text class="qt" x="192" y="103">proc: resource_detection, memory_limiter, transform/sanitize_spans,</text>
+  <text class="qt" x="192" y="116">      gen_ai_normalizer, transform/redact_sensitive_data, redaction</text>
+  <text class="qt" x="192" y="128">exp: otlp_grpc/jaeger, span_metrics (connector), debug</text>
+  <!-- metrics -->
+  <rect class="qbx" x="182" y="142" width="416" height="78" rx="6"/>
+  <text class="qh" x="192" y="159">metrics</text>
+  <text class="qt" x="192" y="176">recv: otlp, span_metrics, docker_stats, host_metrics, http_check,</text>
+  <text class="qt" x="192" y="189">      nginx, redis, postgresql, kafkametrics</text>
+  <text class="qt" x="192" y="203">proc: resource_detection, memory_limiter</text>
+  <text class="qt" x="192" y="216">exp: otlp_http/prometheus, debug</text>
+  <!-- logs -->
+  <rect class="qbx" x="182" y="230" width="416" height="66" rx="6"/>
+  <text class="qh" x="192" y="247">logs</text>
+  <text class="qt" x="192" y="263">recv: otlp</text>
+  <text class="qt" x="192" y="277">proc: resource_detection, memory_limiter, transform/sanitize_logs,</text>
+  <rect class="qus" x="190" y="281" width="232" height="13" rx="3"/>
+  <text class="qt" x="192" y="291">      transform/avoid_mapping_conflicts  (ours)</text>
+  <text class="qt" x="430" y="291">exp: opensearch, debug</text>
+  <!-- profiles -->
+  <rect class="qbx" x="182" y="306" width="416" height="44" rx="6"/>
+  <text class="qh" x="192" y="323">profiles</text>
+  <text class="qt" x="192" y="340">recv: otlp → exp: otlp_grpc/firepit (only with compose.profiling.yaml), debug</text>
+  <!-- connector loop -->
+  <path class="qln" d="M598,120 C640,130 640,170 600,180" marker-end="url(#qp)" stroke-dasharray="4 3"/>
+  <text class="qm" x="612" y="152">span_metrics</text>
+  <!-- backends -->
+  <rect class="qbe" x="660" y="70" width="130" height="44" rx="6"/><text class="qh" x="725" y="89" text-anchor="middle">Jaeger 2.19</text><text class="qm" x="725" y="104" text-anchor="middle">in-memory traces</text>
+  <rect class="qbe" x="660" y="158" width="130" height="44" rx="6"/><text class="qh" x="725" y="177" text-anchor="middle">Prometheus 3.13</text><text class="qm" x="725" y="192" text-anchor="middle">OTLP receiver · TSDB 7d</text>
+  <rect class="qbe" x="660" y="240" width="130" height="44" rx="6"/><text class="qh" x="725" y="259" text-anchor="middle">OpenSearch 3.7</text><text class="qm" x="725" y="274" text-anchor="middle">otel-logs-yyyy-MM-dd</text>
+  <path class="qln" d="M610,92 L658,92" marker-end="url(#qp)"/><path class="qln" d="M610,180 L658,180" marker-end="url(#qp)"/><path class="qln" d="M610,262 L658,262" marker-end="url(#qp)"/>
+  <rect class="qbe" x="660" y="318" width="130" height="44" rx="6"/><text class="qh" x="725" y="337" text-anchor="middle">Grafana 13.1</text><text class="qm" x="725" y="352" text-anchor="middle">queries all three</text>
+  <path class="qln" d="M795,92 L798,92 L798,340 L792,340" marker-end="url(#qp)"/>
+  <path class="qln" d="M795,180 L798,180"/><path class="qln" d="M795,262 L798,262"/>
+</svg>
+<figcaption>Figure 2. The telemetry pipeline as configured in this run (merged from <code>otelcol-config.yml</code>, <code>-full.yml</code>, <code>-observability.yml</code>, <code>-extras.yml</code>). The base file exports only to <code>debug</code>; the observability overlay adds the real exporters.</figcaption>
+</figure>
+<h3>End-to-end flow of one checkout request</h3>
+<ol>
+  <li>Locust (itself instrumented) starts the trace (root span <code>user_checkout_multi</code>) and posts <code>/api/checkout</code> to Envoy with a <b>W3C <code>traceparent</code></b> header; every hop passes it downstream.</li>
+  <li>Each service continues the same trace ID, creating child spans for its gRPC/HTTP/Kafka/SQL work.</li>
+  <li>SDKs batch the spans and send them via OTLP to <code>otel-collector:4317/4318</code>, along with metrics (counters, histograms) and logs. Logs carry the trace ID, so they can be correlated.</li>
+  <li>The Collector adds resource attributes (host, container), redacts sensitive fields, derives span metrics, and exports: traces → Jaeger, metrics → Prometheus <code>/api/v1/otlp</code>, logs → OpenSearch.</li>
+  <li>Grafana queries all three backends; Jaeger's UI shows the trace waterfall.</li>
+</ol>
+<div class="callout"><b>Push, not scrape.</b>Prometheus traditionally <i>pulls</i> metrics from <code>/metrics</code> endpoints. In this release the Collector <i>pushes</i> metrics to Prometheus's built-in OTLP receiver (<code>--web.enable-otlp-receiver</code>). Prometheus converts <code>service.namespace</code>/<code>service.name</code> into the <code>job</code> label, e.g. <code>job="opentelemetry-demo/checkout"</code>.</div>
+
+<!-- ============================== 8 ============================== -->
+<h2>8. Metrics vs logs vs traces</h2>
+<table>
+  <tr><th style="width:12%"></th><th>Metrics</th><th>Logs</th><th>Traces</th></tr>
+  <tr><td><b>What</b></td><td>Numbers aggregated over time</td><td>Timestamped text or structured events</td><td>A request's path through services, as a tree of timed spans</td></tr>
+  <tr><td><b>Answers</b></td><td><i>Is something wrong? How much?</i></td><td><i>What exactly happened?</i></td><td><i>Where in the call chain, and why is it slow?</i></td></tr>
+  <tr><td><b>Cost</b></td><td>Cheap; fixed size per series</td><td>Expensive; one record per event</td><td>Expensive; often sampled</td></tr>
+  <tr><td><b>Real example from this run</b></td><td><code>traces_span_metrics_calls_total</code>: frontend-proxy at 11.25 req/s (Figure 6)</td><td>checkout: <code>"payment went through"</code>, <code>"order confirmation email sent"</code> (Figure 8)</td><td>Trace <code>f144f42b…</code>: 137 spans, 12 services, 60.8 ms (Figure 4)</td></tr>
+  <tr><td><b>Backend here</b></td><td>Prometheus</td><td>OpenSearch</td><td>Jaeger</td></tr>
+</table>
+<p><b>How an investigation uses all three:</b> a metric alert says checkout error rate rose → traces show the failing span is <code>PaymentService/Charge</code> → that span's trace ID finds the matching payment logs with the exact error. Our copilot will follow this same <i>metrics → traces → logs</i> path.</p>
+
+<!-- ============================== 9 ============================== -->
+<h2 class="page-break">9. The backends: Prometheus, Jaeger, OpenSearch, Grafana</h2>
+<h3>Jaeger: traces</h3>
+<p>Receives OTLP from the Collector and stores traces <b>in memory</b> (<code>memory_backend</code>, capped by <code>MEMORY_MAX_TRACES</code>), so traces are lost when Jaeger restarts. The UI is served under <code>/jaeger/ui</code>. <i>System Architecture</i> derives a service graph from observed spans.</p>
+<figure><img src="../assets/screenshots/02-jaeger-trace-placeorder.png" alt="Jaeger trace"><figcaption>Figure 4. A real checkout trace (<code>user_checkout_multi</code>): 12 services, depth 16, 137 spans, 60.8 ms. Envoy (orange), frontend (purple) and cart (teal) spans nest under the load-generator root.</figcaption></figure>
+<figure><img src="../assets/screenshots/09-jaeger-search.png" alt="Jaeger search"><figcaption>Figure 5. Jaeger search for <code>service=checkout</code>, last hour. Each row is one trace with per-service span counts. The scatter plot shows durations; the outlier near 2.5 s is visible here.</figcaption></figure>
+<figure><img src="../assets/screenshots/03-jaeger-system-architecture.png" alt="Jaeger architecture"><figcaption>Figure 5b. Jaeger "System Architecture": the dependency graph derived purely from traces. Note that <code>flagd</code> appears as a dependency of many services.</figcaption></figure>
+
+<h3>Prometheus: metrics</h3>
+<p>Receives pushed OTLP metrics, stores them in its TSDB for 7 days (<code>--storage.tsdb.retention.time=7d</code>), and is queried with <b>PromQL</b>. It is published on the fixed port <code>9090</code>. During this run it held <b>479 metric names, 5,523 series, 23 jobs</b>.</p>
+<figure><img src="../assets/screenshots/06-prometheus-query.png" alt="Prometheus graph"><figcaption>Figure 6. <code>sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))</code>: requests per second per service, derived from spans. The gap near 19:46 UTC is our own Collector restart while fixing the log pipeline (§13).</figcaption></figure>
+
+<h3>OpenSearch: logs</h3>
+<p>The Collector's <code>opensearch</code> exporter writes logs to a daily index <code>otel-logs-yyyy-MM-dd</code>. Fields are mapped dynamically, which is the source of the conflict we fixed in §13. Port 9200 is published only to a random host port, so the reliable way in is from inside the container: <code>docker exec opensearch curl …</code>.</p>
+
+<h3>Grafana: dashboards</h3>
+<p>Anonymous viewer access is enabled; it's served at <code>/grafana/</code>. Three provisioned datasources: <b>Prometheus</b> (<code>webstore-metrics</code>), <b>Jaeger</b> (<code>webstore-traces</code>), <b>OpenSearch</b> (<code>webstore-logs</code>, PPL queries). Ten provisioned dashboards: Demo Dashboard, Spanmetrics Demo Dashboard, APM Dashboard, OpenTelemetry Collector, Self-Observability, Linux, PostgreSQL, NGINX Metrics, Cart Service Exemplars, Events by Name.</p>
+<figure><img src="../assets/screenshots/04-grafana-spanmetrics.png" alt="Grafana spanmetrics"><figcaption>Figure 7. Spanmetrics dashboard: p95 latency gauges and top request/error rates per service, computed from span metrics.</figcaption></figure>
+<figure><img src="../assets/screenshots/05-grafana-demo-dashboard.png" alt="Grafana demo dashboard"><figcaption>Figure 8. Demo Dashboard filtered to <code>checkout</code>: RED metrics (Prometheus) and log records (OpenSearch) side by side. "No data" under Error Rate is correct: checkout had no errors.</figcaption></figure>
+<figure><img src="../assets/screenshots/07-grafana-logs-opensearch.png" alt="Grafana logs"><figcaption>Figure 9. The "Log Records" panel for checkout, cart and frontend-proxy. These Envoy access logs were among the records being dropped before the fix.</figcaption></figure>
+
+<!-- ============================== 10 ============================== -->
+<h2 class="page-break">10. How to inspect metrics, logs and traces</h2>
+<table>
+  <tr><th style="width:26%">Interface</th><th style="width:38%">URL</th><th>Use</th></tr>
+  <tr><td>Shop</td><td><code>http://localhost:8080/</code></td><td>Generate your own traffic.</td></tr>
+  <tr><td>Jaeger UI</td><td><code>http://localhost:8080/jaeger/ui/</code></td><td>Search traces, view waterfalls, service graph.</td></tr>
+  <tr><td>Grafana</td><td><code>http://localhost:8080/grafana/</code></td><td>Dashboards; Explore for ad-hoc queries.</td></tr>
+  <tr><td>Prometheus</td><td><code>http://localhost:9090/</code></td><td>PromQL queries and graphs.</td></tr>
+  <tr><td>Load generator</td><td><code>http://localhost:8080/loadgen/</code></td><td>Traffic stats; change users / stop load.</td></tr>
+  <tr><td>Feature flags</td><td><code>http://localhost:8080/feature/</code></td><td>Fault injection (humans only, §12).</td></tr>
+  <tr><td>Telemetry docs</td><td><code>http://localhost:8080/telemetry/</code></td><td>Generated docs for the telemetry schema.</td></tr>
+</table>
+<h3>Traces (Jaeger API, exactly as used in verification)</h3>
+<pre><code>curl -s --noproxy '*' http://localhost:8080/jaeger/ui/api/services
+#  -> 20 services: accounting, ad, cart, checkout, currency, email, flagd, flagd-ui, fraud-detection,
+#     frontend, frontend-proxy, frontend-web, image-provider, load-generator, payment,
+#     product-catalog, quote, recommendation, shipping, telemetry-docs
+curl -s --noproxy '*' 'http://localhost:8080/jaeger/ui/api/traces?service=checkout&operation=oteldemo.CheckoutService/PlaceOrder&limit=5&lookback=1h'
+curl -s --noproxy '*' 'http://localhost:8080/jaeger/ui/api/dependencies?endTs=<now-ms>&lookback=3600000'</code></pre>
+<h3>Metrics (PromQL)</h3>
+<pre><code># series count per job (how we confirmed 23 services report metrics)
+count by (job) ({job!=""})
+# request rate per service from span metrics; use [5m], not [1m] (see §13)
+sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))
+# p95 latency per service
+histogram_quantile(0.95, sum by (le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))
+
+# via the HTTP API
+curl -s --noproxy '*' http://localhost:9090/api/v1/query --data-urlencode 'query=count by (job) ({job!=""})'</code></pre>
+<h3>Logs (OpenSearch)</h3>
+<pre><code>docker exec opensearch curl -s 'http://localhost:9200/_cat/indices/otel-logs-*?h=index,docs.count'
+# logs per service: aggregate on the KEYWORD sub-field (text fields can't be aggregated)
+docker exec opensearch curl -s 'http://localhost:9200/otel-logs-*/_search?size=0' \
+  -H 'Content-Type: application/json' \
+  -d '{"aggs":{"s":{"terms":{"field":"resource.service.name.keyword","size":40}}}}'</code></pre>
+<p>In Grafana: <b>Explore → OpenSearch</b>, query type <i>PPL</i>, e.g. <code>search source=otel-logs-* | where resource.service.name = 'checkout' | sort - observedTimestamp | head 100</code> (the same query the Demo Dashboard uses).</p>
+
+<!-- ============================== 11 ============================== -->
+<h2>11. Start, stop and inspect: command reference</h2>
+<p>Run from <code>opentelemetry-demo/</code>. To avoid retyping the long Compose prefix, define a shell function (it works in zsh and bash):</p>
+<pre><code>dc() { docker compose --env-file .env --env-file .env.override \
+  -f compose.yaml -f compose.full.yaml -f compose.observability.yaml -f compose.extras.yaml "$@"; }</code></pre>
+<table>
+  <tr><th style="width:44%">Command</th><th>What it does</th></tr>
+  <tr><td><code>make start</code></td><td>Start all 28 services (detached, force-recreate). <b>Used.</b></td></tr>
+  <tr><td><code>make stop</code></td><td>Runs <code>down --remove-orphans <b>--volumes</b></code>: removes containers, network <b>and data volumes</b>. Not run in Phase 0.</td></tr>
+  <tr><td><code>dc stop</code> / <code>dc start</code></td><td>Pause and resume without deleting containers or data.</td></tr>
+  <tr><td><code>dc ps -a</code></td><td>State and health of every container. <b>Used.</b></td></tr>
+  <tr><td><code>dc logs -f --tail 100 checkout</code></td><td>Follow one service's container stdout/stderr.</td></tr>
+  <tr><td><code>docker logs --since 10m otel-collector</code></td><td>Recent Collector logs; how we found the OpenSearch errors. <b>Used.</b></td></tr>
+  <tr><td><code>docker stats --no-stream</code></td><td>CPU and memory per container vs its limit. <b>Used</b> (4.0 GB total).</td></tr>
+  <tr><td><code>docker inspect &lt;c&gt; --format '{{.RestartCount}} {{.State.OOMKilled}}'</code></td><td>Detect crash loops and OOM kills. <b>Used</b> (all 0 / false).</td></tr>
+  <tr><td><code>dc restart otel-collector</code></td><td>Restart one service, e.g. after a config change. <b>Used.</b></td></tr>
+  <tr><td><code>dc run --rm --no-deps -T otel-collector validate --config=…</code></td><td>Validate Collector config before restarting. <b>Used.</b></td></tr>
+  <tr><td><code>dc config --services</code> / <code>--images</code></td><td>Show the merged service list and images without starting anything. <b>Used.</b></td></tr>
+  <tr><td><code>dc port opensearch 9200</code></td><td>Show which random host port a container port got.</td></tr>
+  <tr><td><code>docker system df</code></td><td>Disk used by images, containers and volumes.</td></tr>
+</table>
+
+<!-- ============================== 12 ============================== -->
+<h2 class="page-break">12. Feature flags, fault injection and the security boundary</h2>
+<p>A <b>feature flag</b> is a runtime switch that code checks on every request. The demo uses <a href="https://openfeature.dev">OpenFeature</a> SDKs in each service, backed by <b>flagd</b>. Flags live in <code>src/flagd/demo.flagd.json</code>, which is bind-mounted into both <code>flagd</code> (reads and watches it) and <code>flagd-ui</code> (writes it). Changing a flag in the UI changes behaviour <b>live</b>, with no restart.</p>
+<figure><img src="../assets/screenshots/10-flagd-ui.png" alt="flagd UI"><figcaption>Figure 10. Flagd Configurator at <code>/feature/</code>, all flags <code>off</code> (default).</figcaption></figure>
+<table>
+  <tr><th style="width:28%">Flag</th><th style="width:22%">Variants</th><th>Fault injected</th></tr>
+  <tr><td>paymentFailure</td><td>off, 10–100%</td><td>Fail payment charge requests n% of the time</td></tr>
+  <tr><td>paymentUnreachable</td><td>off/on</td><td>Payment service unavailable</td></tr>
+  <tr><td>cartFailure</td><td>off, 10–100%</td><td>Fail cart service n% of the time</td></tr>
+  <tr><td>productCatalogFailure</td><td>off/on</td><td>Fail product catalog on a specific product</td></tr>
+  <tr><td>productCatalogLockContention</td><td>off/on</td><td>Lock contention in the catalog database</td></tr>
+  <tr><td>adFailure / adHighCpu / adManualGc</td><td>off/on</td><td>Ad errors / high CPU / full GC pauses</td></tr>
+  <tr><td>emailMemoryLeak</td><td>off, 1x–10000x</td><td>Memory leak in email</td></tr>
+  <tr><td>recommendationCacheFailure</td><td>off/on</td><td>Recommendation cache leak</td></tr>
+  <tr><td>kafkaQueueProblems</td><td>off/on</td><td>Kafka overload + consumer delay (lag spike)</td></tr>
+  <tr><td>imageSlowLoad / intlShippingSlowdown</td><td>off, 5sec, 10sec</td><td>Slow images / slow international shipping</td></tr>
+  <tr><td>failedReadinessProbe</td><td>off/on</td><td>Cart readiness probe fails</td></tr>
+  <tr><td>loadGeneratorFloodHomepage</td><td>off/on</td><td>Flood the frontend with requests</td></tr>
+  <tr><td class="muted">aiRunawayAgent, aiSlowResponse, emitRawPii</td><td class="muted">—</td><td class="muted">Agent-layer and PII-redaction demos; not failure scenarios for us</td></tr>
+</table>
+<h3>How we'll inject faults later</h3>
+<p>A human, or a separate "chaos" script that is <i>not</i> part of the copilot, flips a flag in <code>/feature/</code> (or edits the JSON). The copilot must then detect and diagnose the incident from telemetry alone, and we compare its diagnosis with the flag that was actually set (the ground truth).</p>
+<div class="callout bad"><b>Finding: flag state leaks into telemetry (verified on a live trace)</b>In checkout trace <code>f144f42b8b2aa45a09e61b80bb3f6044</code> we found:
+<ul>
+<li><code>feature_flag.evaluation</code> span events in <b>checkout</b> (keys <code>paymentUnreachable</code>, <code>kafkaQueueProblems</code>, <code>emitRawPii</code>), <b>cart</b> (<code>cartFailure</code>) and <b>product-catalog</b> (<code>productCatalogFailure</code>, 9×), each with <code>variant=off</code>.</li>
+<li><b>flagd</b>'s own spans with attributes <code>feature_flag.key</code>, <code>feature_flag.result.variant</code>.</li>
+</ul>
+Source code confirms more paths: OpenFeature tracing hooks in checkout and product-catalog (Go <code>otelhooks.NewTracesHook()</code>), recommendation and load-generator (Python <code>TracingHook</code>); <code>MetricsHook</code> + <code>TraceEnricherHook</code> in cart; a <code>shipping.feature_flag.evaluated</code> log event in shipping; span attribute <code>demo.feature_flag.recommendation_cache</code> in recommendation. If <code>paymentFailure</code> were set to 50%, traces would literally contain <code>variant=50%</code>.</div>
+<h3>Isolation boundary for the diagnosis agents (designed now, built in Phase 1)</h3>
+<ol>
+  <li><b>No direct backend access.</b> Agents query telemetry only through our own <i>sanitizing access layer</i>.</li>
+  <li><b>Scrub flag signals:</b> drop attributes, span events, log events and metrics matching <code>feature_flag.*</code>, <code>demo.feature_flag.*</code>, <code>shipping.feature_flag.*</code>; drop all telemetry whose <code>service.name</code> is <code>flagd</code> or <code>flagd-ui</code>; drop spans that call the flagd evaluation API.</li>
+  <li><b>No side doors:</b> no access to <code>/feature/</code>, flagd's ports (8013/8016, which this run also published on random host ports), <code>src/flagd/demo.flagd.json</code>, the repository, or the Docker socket.</li>
+  <li>Open choice for Phase 1: implement scrubbing as a second, filtered Collector pipeline feeding agent-only backends, or as a query proxy in front of the existing backends.</li>
+</ol>
+
+<!-- ============================== 13 ============================== -->
+<h2 class="page-break">13. Problems we hit and how we solved them</h2>
+<p><span class="tag hit">ENCOUNTERED</span> All of these happened during this phase, in this order.</p>
+<table>
+  <tr><th style="width:27%">Symptom</th><th style="width:33%">Root cause</th><th>Fix</th></tr>
+  <tr><td><code>failed to connect to the docker API at unix:///…/docker.sock</code></td><td>Docker Desktop (the daemon in its VM) wasn't running; only the CLI was.</td><td>Start Docker Desktop and wait for "Engine running".</td></tr>
+  <tr><td>Sum of container memory limits (7.71 GB) ≈ Docker memory (7.8 GB)</td><td>Default Docker Desktop allocation is too small for the full stack.</td><td>Settings → Resources → Memory = 10 GB.</td></tr>
+  <tr><td>Images would be <code>latest-*</code> though we cloned 3.1.0</td><td><code>.env</code> sets <code>DEMO_VERSION=latest</code>.</td><td><code>DEMO_VERSION=3.1.0</code> in <code>.env.override</code>.</td></tr>
+  <tr><td><code>net/http: TLS handshake timeout</code> on every registry (ghcr.io, quay.io, Docker Hub); 0/28 images</td><td>College network: macOS uses proxy <code>172.31.2.3:8080</code> with PAC <code>http://wpad/wpad.dat</code>, but that URL returns an HTML filter page. Docker's proxy log showed <code>evaluating PAC file … lookup wpad: no such host</code>, then a fallback to direct connections that stall on this network.</td><td>Docker Desktop → Resources → Proxies → manual: HTTP/HTTPS <code>http://172.31.2.3:8080</code>, bypass <code>localhost,127.0.0.1,*.local,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12</code>. Handshakes dropped from a 72 s stall to 0.4 s. <b>Turn this off on other networks.</b></td></tr>
+  <tr><td>Compose showed most pulls as "Interrupted"; first background task reported exit 0</td><td>Compose aborts all pulls after the first failure; the exit 0 belonged to a trailing <code>echo</code>.</td><td>Always check the real exit code; pull separately with <code>COMPOSE_PARALLEL_LIMIT=4</code> and retries.</td></tr>
+  <tr><td>Shell loops failed (<code>unknown flag</code>, <code>command not found</code>)</td><td><b>zsh does not word-split</b> unquoted <code>$VAR</code> like bash.</td><td>Use bash arrays, shell functions, or <code>while read</code> loops.</td></tr>
+  <tr><td>Collector: <code>kafkametrics … connection refused</code></td><td>Collector scraped Kafka before Kafka was listening.</td><td>None needed: transient; stopped once Kafka was healthy.</td></tr>
+  <tr><td>Collector: <code>Exporting failed. Dropping data</code> from <code>opensearch</code>, about 26/min:<br><code>mapper_parsing_exception: Existing mapping for [attributes.http] must be of type object but found [text]</code></td><td>cart's .NET log template <code>"Overriding HTTP_PORTS '{http}' …"</code> emits attribute <code>http="8080"</code>. As the day's first such doc it fixed <code>attributes.http</code> as <i>text</i>, so every later log with <code>http.request.method</code> (an object path) was rejected.</td><td>Added <code>transform/avoid_mapping_conflicts</code> in <code>otelcol-config-extras.yml</code>: rename root-level <i>string</i> attributes named <code>http</code>, <code>url</code>, <code>server</code>, <code>client</code>, <code>network</code>, <code>error</code> to <code>&lt;name&gt;_value</code>. Validated, restarted the Collector, deleted the mis-mapped day index. Result: 0 export errors; 3,524 logs from 17 services in 90 s.</td></tr>
+  <tr><td>PromQL <code>rate(…[1m])</code> returned no data</td><td>Metrics arrive about once a minute; <code>rate()</code> needs ≥ 2 samples in the window.</td><td>Use a window of at least 2–4× the interval: <code>[5m]</code>.</td></tr>
+  <tr><td>Prometheus had a <code>service_name</code> label for only one service</td><td>OTLP ingestion puts identity in <code>job</code> (= namespace/name); <code>service_name</code> is set only on some series (e.g. span metrics).</td><td>Filter by <code>job</code> for general metrics.</td></tr>
+  <tr><td>OpenSearch aggregation error: "Text fields are not optimised…"</td><td>Aggregated on a <code>text</code> field.</td><td>Use the <code>.keyword</code> sub-field.</td></tr>
+  <tr><td>Headless screenshots: Grafana "Error loading: timeseries", blank Jaeger graph</td><td><code>--virtual-time-budget</code> breaks lazy-loaded JavaScript; nothing was wrong with the services.</td><td>Use a browser driver (puppeteer-core) with real waits.</td></tr>
+</table>
+<h3>The Collector fix (as committed to <code>src/otel-collector/otelcol-config-extras.yml</code>)</h3>
+<pre><code>processors:
+  transform/avoid_mapping_conflicts:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(log.attributes["http_value"], log.attributes["http"]) where IsString(log.attributes["http"])
+          - delete_key(log.attributes, "http") where IsString(log.attributes["http"])
+          # ... same pair for url, server, client, network, error
+service:
+  pipelines:
+    logs:
+      # arrays are REPLACED when config files merge, so repeat upstream processors first
+      processors: [resource_detection, memory_limiter, transform/sanitize_logs, transform/avoid_mapping_conflicts]</code></pre>
+
+<!-- ============================== 14 ============================== -->
+<h2>14. Other common errors and their fixes</h2>
+<p><span class="tag gen">GENERAL</span> Not encountered in this run, but likely with this stack.</p>
+<table>
+  <tr><th style="width:32%">Symptom</th><th>Cause → fix</th></tr>
+  <tr><td>Container <code>Exited (137)</code>, <code>OOMKilled=true</code></td><td>Hit its memory limit or Docker ran out → raise Docker memory; check <code>docker stats</code>. Kafka sits near its 620 MB limit by design (fixed 400 MB heap).</td></tr>
+  <tr><td><code>Bind for 0.0.0.0:8080 failed: port is already allocated</code></td><td>Another process uses 8080 → <code>lsof -nP -iTCP:8080 -sTCP:LISTEN</code>, stop it, or change <code>ENVOY_PORT</code> in <code>.env.override</code>.</td></tr>
+  <tr><td><code>toomanyrequests</code> from Docker Hub</td><td>Anonymous pull rate limit, shared by a whole campus IP → <code>docker login</code>.</td></tr>
+  <tr><td>Pull fails with HTML / 403</td><td>Network web filter blocking a registry → ask IT or use another network to pull once.</td></tr>
+  <tr><td>Pulls fail after moving to home Wi-Fi</td><td>Docker still points at the college proxy → switch Proxies back to "system".</td></tr>
+  <tr><td><code>no space left on device</code></td><td>Images and volumes fill the VM disk → <code>docker system df</code>, <code>docker image prune</code>.</td></tr>
+  <tr><td>Dashboards empty right after start</td><td>Rate windows need data → wait about 5 minutes (the dashboards say so too).</td></tr>
+  <tr><td><code>curl localhost</code> hangs behind a proxy</td><td>curl sent localhost traffic to <code>http_proxy</code> → use <code>--noproxy '*'</code> (all commands here do).</td></tr>
+  <tr><td>Traces missing after a restart</td><td>Jaeger stores traces in memory → expected; generate new traffic.</td></tr>
+</table>
+
+<!-- ============================== 15 ============================== -->
+<h2>15. Known limitations and baseline noise</h2>
+<ul>
+  <li><b>Locust baseline ≈ 6.5% failures with all flags off.</b> 35 of the failures are <code>POST /prompt</code> → <code>gaierror: Name or service not known</code>: the load generator's hard-coded chatbot task (weight 3) targets <code>agent:8010</code>, which exists only in <code>compose.agent.yaml</code> (not deployed). Two were <code>Connection refused</code> while frontend-proxy started. The copilot must treat these as known noise, not incidents.</li>
+  <li><b>Random host ports</b> for most services change on every restart; always go through <code>:8080</code>, <code>:9090</code>, or <code>docker exec</code>.</li>
+  <li><b>Jaeger is in-memory</b>: no trace history across restarts.</li>
+  <li><b>Kafka</b> uses about 97% of its memory limit (JVM pre-allocation): a potential OOM risk under the <code>kafkaQueueProblems</code> flag.</li>
+  <li>The <code>-full</code> Collector overlay replaces the metrics receiver list and omits <code>prometheus/ad</code>, so the ad service's Prometheus-format endpoint isn't scraped (ad still exports via OTLP).</li>
+  <li>Grafana logs a few upstream warnings (e.g. <code>auth.anonymous.org_role is deprecated</code>, alert "Error in expanding template"); the Collector warns that <code>kafkametrics</code> is a deprecated alias. These are harmless.</li>
+  <li>The Mac sleeping during startup made <code>make start</code> report 17,433 s; containers recovered through their restart policy.</li>
+  <li><b>Open observation:</b> Grafana stopped once (~19:46 UTC) with exit code 0, no OOM and no shutdown message in its log, and was restarted automatically (<code>RestartCount=1</code>). It has been stable since. Cause not determined; watch for recurrence.</li>
+  <li>Grafana's alert notifier logs <code>SMTP not configured</code> every 5 minutes: a provisioned alert rule tries to email and no mail server is set up. This is upstream noise.</li>
+</ul>
+<figure><img src="../assets/screenshots/08-load-generator.png" alt="Locust"><figcaption>Figure 11. Locust at <code>/loadgen/</code>: 5 users, ~1 req/s, ~7% failures with all flags off. Most of these are the <code>/prompt</code> chatbot calls to a service we did not deploy.</figcaption></figure>
+
+<!-- ============================== 16 ============================== -->
+<h2 class="page-break">16. Key concepts and interview questions</h2>
+<dl class="qa">
+<dt>1. What is observability, and how is it different from monitoring?</dt>
+<dd>Monitoring checks known failure conditions (dashboards, alerts on predefined metrics). Observability is the ability to answer <i>new</i> questions about a system's internal state from its outputs (metrics, logs, traces) without shipping new code. Monitoring tells you <i>that</i> checkout errors rose; observability lets you find <i>why</i>.</dd>
+<dt>2. Explain the three pillars with an example.</dt>
+<dd>Metrics: checkout error rate jumped from 0 to 5/s. Traces: the failing span in those requests is <code>PaymentService/Charge</code>. Logs: payment logged "charge failed: …" with the same trace ID. Metrics detect, traces localize, logs explain.</dd>
+<dt>3. What is OpenTelemetry? Is it a backend?</dt>
+<dd>No. It's a vendor-neutral standard: APIs, SDKs, semantic conventions, the OTLP protocol and the Collector. It <i>produces and transports</i> telemetry; storage and querying are done by backends such as Prometheus, Jaeger and OpenSearch.</dd>
+<dt>4. Why use a Collector instead of exporting directly from each service?</dt>
+<dd>It decouples apps from backends (change a backend in one config file), centralizes processing (redaction, enrichment, sampling, batching, memory limits), and adds pull-based receivers for infrastructure (Docker, Postgres, Redis, Kafka). We used it to fix a data-shape bug for all services in one place.</dd>
+<dt>5. What are receivers, processors, exporters and connectors?</dt>
+<dd>Receivers bring data in; processors transform it; exporters send it out; connectors join pipelines. In this demo, <code>span_metrics</code> consumes traces and emits RED metrics.</dd>
+<dt>6. How does context propagation work?</dt>
+<dd>The caller injects the W3C <code>traceparent</code> header (trace ID, parent span ID, flags) into the outgoing request; the callee extracts it and creates child spans under the same trace ID. Kafka propagates it in message headers, which is how the async consumers join the trace.</dd>
+<dt>7. What is a span? What does it contain?</dt>
+<dd>A timed operation: name, start and end time, trace and span IDs, parent ID, kind (server/client/producer/consumer/internal), status, attributes, events and links. A trace is the tree of spans for one request.</dd>
+<dt>8. What are RED and USE metrics?</dt>
+<dd>RED (Rate, Errors, Duration) suits request-driven services; USE (Utilization, Saturation, Errors) suits resources like CPU, memory and queues. Span metrics give RED; <code>docker_stats</code>/<code>host_metrics</code> give USE.</dd>
+<dt>9. Push vs pull metrics?</dt>
+<dd>Prometheus classically pulls (scrapes) <code>/metrics</code>. Here the Collector pushes OTLP to Prometheus's OTLP receiver. Pull makes target health visible; push suits short-lived jobs and centralised pipelines.</dd>
+<dt>10. Why did <code>rate(x[1m])</code> return nothing?</dt>
+<dd><code>rate()</code> needs at least two samples inside the range window. With roughly 60 s between samples, a 1-minute window often holds one. The rule of thumb is a window ≥ 4× the sample interval.</dd>
+<dt>11. What is a mapping conflict in OpenSearch/Elasticsearch?</dt>
+<dd>A field's type is fixed by the first document that contains it (dynamic mapping). If <code>attributes.http</code> is first seen as a string, later docs where <code>http</code> must be an object (<code>http.request.method</code>) are rejected. Fixes: normalise data before indexing (what we did), use explicit index templates, or flatten attributes.</dd>
+<dt>12. What is the difference between a Docker image and a container? What does exit code 137 mean?</dt>
+<dd>An image is an immutable template; a container is a running instance of it. 137 = 128 + 9 (SIGKILL), usually the kernel's OOM killer when a container exceeds its memory limit.</dd>
+<dt>13. Why pin versions in infrastructure projects?</dt>
+<dd>Reproducibility: <code>latest</code> changes under you. We pinned the code tag (3.1.0) and the image tag (<code>DEMO_VERSION=3.1.0</code>) so configs and binaries match.</dd>
+<dt>14. How would you debug "TLS handshake timeout" when pulling images?</dt>
+<dd>Separate layers: does the host reach the registry (<code>curl</code>)? Does the Docker VM (test from a container)? Which proxy does Docker use (<code>docker info</code>, Docker Desktop's <code>httpproxy.log</code>)? Here the host worked but Docker's PAC evaluation failed; setting the proxy explicitly fixed it.</dd>
+<dt>15. What are feature flags, and why are they useful for chaos testing?</dt>
+<dd>Runtime switches evaluated per request. They inject realistic, reversible faults without redeploying, and the flag state is a precise ground truth for grading a diagnosis.</dd>
+<dt>16. Why must the diagnosis agent not see feature-flag state, and how do you enforce it?</dt>
+<dd>Otherwise it "diagnoses" by reading the answer: traces already contain <code>feature_flag.key=paymentFailure, variant=50%</code>. Enforce it with an allow-listed, sanitizing telemetry access layer that strips <code>feature_flag.*</code> signals and flagd telemetry, and give agents no network or file access to flagd, its UI, its JSON or the Docker socket.</dd>
+<dt>17. What is tail-based vs head-based sampling?</dt>
+<dd>Head-based sampling decides at the root span (cheap, but may drop the interesting errors). Tail-based sampling decides after the whole trace is seen (keeps errors and slow traces, but needs buffering in the Collector). The Collector config in this demo contains no sampling processor.</dd>
+<dt>18. What are semantic conventions?</dt>
+<dd>Standard attribute names (<code>http.request.method</code>, <code>service.name</code>, <code>db.system</code>) so that tools understand telemetry from any language. Our mapping conflict happened precisely because an app emitted a non-conventional root attribute named <code>http</code>.</dd>
+</dl>
+
+<!-- ============================== 17 ============================== -->
+<h2 class="page-break">17. Checklist, file locations and Phase 1 preview</h2>
+<h3>Checklist: what works (verified 21 Nov 2026)</h3>
+<table>
+  <tr><th style="width:6%"></th><th>Item</th><th style="width:38%">Evidence</th></tr>
+  <tr><td class="ok">✔</td><td>Git, Docker, Docker Compose installed; Docker has 10 GB</td><td><code>docker info</code>: 9.7 GiB usable</td></tr>
+  <tr><td class="ok">✔</td><td>Docker can pull images through the college proxy</td><td>ghcr.io handshake 0.4 s; 28/28 images</td></tr>
+  <tr><td class="ok">✔</td><td>Demo 3.1.0 cloned; images pinned to 3.1.0</td><td><code>config --images</code> → <code>3.1.0-*</code></td></tr>
+  <tr><td class="ok">✔</td><td>All 28 containers running and healthy</td><td><code>dc ps -a</code>; 0 restarts, 0 OOM</td></tr>
+  <tr><td class="ok">✔</td><td>Shop and all UIs reachable</td><td>HTTP 200 on 7 routes + Prometheus ready</td></tr>
+  <tr><td class="ok">✔</td><td>Traces flow to Jaeger</td><td>20 services; 137-span checkout trace</td></tr>
+  <tr><td class="ok">✔</td><td>Metrics flow to Prometheus</td><td>23 jobs, 5,523 series, 479 metric names</td></tr>
+  <tr><td class="ok">✔</td><td>Logs flow to OpenSearch without loss</td><td>17 services; 0 exporter errors after fix</td></tr>
+  <tr><td class="ok">✔</td><td>Grafana dashboards render with live data</td><td>Figures 7–9</td></tr>
+  <tr><td class="ok">✔</td><td>Feature flags understood; leakage paths documented</td><td>§12, live trace evidence</td></tr>
+</table>
+<h3>Files</h3>
+<table>
+  <tr><th style="width:52%">Path (under <code>~/Desktop/Incident-response-copilot/</code>)</th><th>What</th></tr>
+  <tr><td><code>docs/phase-0-environment-setup.pdf</code></td><td>This document</td></tr>
+  <tr><td><code>docs/src/phase-0-environment-setup.html</code></td><td>Source of this PDF</td></tr>
+  <tr><td><code>docs/assets/screenshots/*.png</code></td><td>The 9 screenshots used here</td></tr>
+  <tr><td><code>opentelemetry-demo/</code></td><td>Official demo, tag 3.1.0</td></tr>
+  <tr><td><code>opentelemetry-demo/.env.override</code></td><td><b>Modified:</b> <code>DEMO_VERSION=3.1.0</code></td></tr>
+  <tr><td><code>opentelemetry-demo/src/otel-collector/otelcol-config-extras.yml</code></td><td><b>Modified:</b> log mapping-conflict fix</td></tr>
+  <tr><td><code>opentelemetry-demo/src/flagd/demo.flagd.json</code></td><td>Flag definitions (off-limits to agents)</td></tr>
+  <tr><td><code>opentelemetry-demo/src/otel-collector/otelcol-config*.yml</code></td><td>Collector pipeline layers</td></tr>
+  <tr><td><code>~/Library/Group Containers/group.com.docker/settings-store.json</code></td><td><b>Modified:</b> manual proxy (backup <code>settings-store.json.bak-before-proxy-20261120-201142</code>)</td></tr>
+</table>
+<h3>Phase 1 preview</h3>
+<ol>
+  <li><b>Telemetry access layer + isolation boundary</b>: the sanitizing gateway from §12 (strip <code>feature_flag.*</code> signals and flagd telemetry); decide between a Collector pipeline and a query proxy; prove with a test that an injected flag cannot be read through it.</li>
+  <li><b>Typed telemetry tools</b> that agents will call: PromQL queries (RED per service), Jaeger trace search and trace fetch, OpenSearch log search by service, severity and trace ID.</li>
+  <li><b>Baseline capture</b>: record normal RED metrics and the known noise (<code>/prompt</code> errors) so later detection compares against reality.</li>
+  <li><b>Fault-injection harness</b> kept outside the agents' reach: flip a flag, record ground truth and timestamps, restore it.</li>
+</ol>
+
+</body>
+</html>

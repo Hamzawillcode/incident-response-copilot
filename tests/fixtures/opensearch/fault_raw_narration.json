@@ -1,0 +1,2499 @@
+{
+ "description": "RAW FAULT: unexcluded warn+ records and fault narration (e.g. 'Feature Flag adManualGc enabled').",
+ "recorded_at": "2026-11-20T20:55:14+00:00",
+ "request": {
+  "method": "GET",
+  "path": "/otel-logs-*/_search",
+  "params": {},
+  "json_body": {
+   "size": 40,
+   "track_total_hits": true,
+   "sort": [
+    {
+     "observedTimestamp": {
+      "order": "desc"
+     }
+    }
+   ],
+   "query": {
+    "bool": {
+     "should": [
+      {
+       "range": {
+        "severity.number": {
+         "gte": 13
+        }
+       }
+      },
+      {
+       "query_string": {
+        "query": "*eature*lag* OR *intlShippingSlowdown* OR *adManualGc*",
+        "fields": [
+         "body"
+        ],
+        "analyze_wildcard": true
+       }
+      }
+     ],
+     "minimum_should_match": 1,
+     "filter": [
+      {
+       "range": {
+        "observedTimestamp": {
+         "gte": "now-5m"
+        }
+       }
+      }
+     ]
+    }
+   }
+  }
+ },
+ "response": {
+  "status_code": 200,
+  "content_type": "application/json; charset=UTF-8",
+  "body": {
+   "took": 11,
+   "timed_out": false,
+   "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+   },
+   "hits": {
+    "total": {
+     "value": 82,
+     "relation": "eq"
+    },
+    "max_score": null,
+    "hits": [
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "gLa9-qEBmPE3-RMx7w1c",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:14.01183667Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "b98c1e91bd631cc4",
+       "@timestamp": "2026-11-20T20:55:12.834Z",
+       "traceId": "20e86099af5f0b4bd064e08335c2b42f"
+      },
+      "sort": [
+       1795208114011
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "ILa9-qEBmPE3-RMx5w3t",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/products/OLJCESPC7Z"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:12.108570169Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "e7be080d3a6ac2a0",
+       "@timestamp": "2026-11-20T20:55:10.906Z",
+       "traceId": "35b0dbb25364bc794f383c2f9d128212"
+      },
+      "sort": [
+       1795208112108
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "KLa9-qEBmPE3-RMx5w3t",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: failed to prepare order: failed to get product #\"OLJCESPC7Z\"",
+        "exception.stacktrace": "Error: 13 INTERNAL: failed to prepare order: failed to get product #\"OLJCESPC7Z\"\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as placeOrder] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__009k40p._.js:1:546\n    at new Promise (<anonymous>)",
+        "exception.type": "13"
+       },
+       "body": "Checkout failed to place order",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:12.108749919Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "553a09d39c955982",
+       "@timestamp": "2026-11-20T20:55:10.952Z",
+       "traceId": "35b0dbb25364bc794f383c2f9d128212"
+      },
+      "sort": [
+       1795208112108
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "aLa9-qEBmPE3-RMx0gz1",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:06.740658305Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "b674510b21caac89",
+       "@timestamp": "2026-11-20T20:55:05.716Z",
+       "traceId": "749dcae79d5b62902268719f7401e3c5"
+      },
+      "sort": [
+       1795208106740
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "bba9-qEBmPE3-RMx0gz1",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:06.740790514Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "5466d046e497fc8c",
+       "@timestamp": "2026-11-20T20:55:05.983Z",
+       "traceId": "669d5f257bd1ce838edf2cac976253c7"
+      },
+      "sort": [
+       1795208106740
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "BLa9-qEBmPE3-RMxxww9",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:03.739307846Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "715d16c4f13822b5",
+       "@timestamp": "2026-11-20T20:55:02.57Z",
+       "traceId": "196ecf5693391f50a19051876566487b"
+      },
+      "sort": [
+       1795208103739
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "qLa9-qEBmPE3-RMxwAvj",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)",
+        "exception.type": "Error",
+        "service.name": "payment"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.66.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:02.114185887Z",
+       "resource": {
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/usr/src/app/index.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "22.22.0",
+        "service.criticality": "critical",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "service.name": "payment",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.9.0"
+       },
+       "severity": {
+        "text": "warn",
+        "number": 13
+       },
+       "spanId": "577dec6f9c68fa9a",
+       "@timestamp": "2026-11-20T20:55:01.028Z",
+       "traceId": "64ba961ca4ff1359b9ab9387c97b28b9"
+      },
+      "sort": [
+       1795208102114
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "g7a9-qEBmPE3-RMxvQuG",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:55:01.253584636Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "3eeec9b213d8262f",
+       "@timestamp": "2026-11-20T20:55:00.636223636Z",
+       "traceId": "aa9e4a2e5c8192b586e74531e5c1c7aa"
+      },
+      "sort": [
+       1795208101253
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "aba9-qEBmPE3-RMxugsK",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:55:00.361378011Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "5f1ed3e46e14edc0",
+       "@timestamp": "2026-11-20T20:54:59.181Z",
+       "traceId": "a5b2b1656116d8f179c1171058a9d553"
+      },
+      "sort": [
+       1795208100361
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "3La9-qEBmPE3-RMxrArP",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:56.974992342Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "f7a17f535f8f1e5f",
+       "@timestamp": "2026-11-20T20:54:55.6506778Z",
+       "traceId": "c71001e58173eebcbf8bc88f0f60427c"
+      },
+      "sort": [
+       1795208096974
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "yLa9-qEBmPE3-RMxqwpq",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled",
+        "exception.stacktrace": "Error: 13 INTERNAL: Error: Product Catalog Fail Feature Flag Enabled\n    at callErrorFromStatus (/app/node_modules/@grpc/grpc-js/build/src/call.js:32:19)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client.js:193:76)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:367:141)\n    at Object.onReceiveStatus (/app/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:327:181)\n    at /app/node_modules/@grpc/grpc-js/build/src/resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)\nfor call at\n    at ServiceClientImpl.makeUnaryRequest (/app/node_modules/@grpc/grpc-js/build/src/client.js:161:32)\n    at ServiceClientImpl.<anonymous> (/app/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/clientUtils.js:119:31\n    at /app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:209\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:65:14)\n    at AsyncLocalStorageContextManager.with (/app/node_modules/@opentelemetry/context-async-hooks/build/src/AsyncLocalStorageContextManager.js:45:40)\n    at ContextAPI.with (/app/node_modules/@opentelemetry/api/build/src/api/context.js:51:46)\n    at ServiceClientImpl.clientMethodTrace [as getProduct] (/app/node_modules/@opentelemetry/instrumentation-grpc/build/src/instrumentation.js:202:42)\n    at /app/.next/server/chunks/[root-of-the-server]__11gfe25._.js:1:1527\n    at new Promise (<anonymous>)",
+        "exception.type": "13",
+        "http.request.method": "GET",
+        "http.response.status_code": 500,
+        "url.path": "/api/recommendations"
+       },
+       "body": "API request failed",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.68.0"
+       },
+       "observedTimestamp": "2026-11-20T20:54:56.618023759Z",
+       "resource": {
+        "container.id": "2d7b5fa59daa013f0d43745f4f3426241e152b5366ef0e348d65c11fe0c311c1",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/app/server.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"--require=./Instrumentation.js\",\"/app/server.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "24.21.0",
+        "service.criticality": "critical",
+        "service.name": "frontend",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.11.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "spanId": "d9374eee23afba77",
+       "@timestamp": "2026-11-20T20:54:55.636Z",
+       "traceId": "220d3324c3d4f0285a50ea9f03aab80b"
+      },
+      "sort": [
+       1795208096618
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "8ra9-qEBmPE3-RMxlAl5",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:50.745031923Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "3297317ae13d6732",
+       "@timestamp": "2026-11-20T20:54:49.606962381Z",
+       "traceId": "237f4cdcc39c9de99057c743b3bcab1d"
+      },
+      "sort": [
+       1795208090745
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "bra9-qEBmPE3-RMxgwlP",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:46.350430504Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "4491ac8ef0293f01",
+       "@timestamp": "2026-11-20T20:54:45.275305962Z",
+       "traceId": "8e6e5ae949e2ad11ba7a0c3d0362c820"
+      },
+      "sort": [
+       1795208086350
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Jra9-qEBmPE3-RMxagjo",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "delay_secs": 5
+       },
+       "body": "Delaying international shipment due to intlShippingSlowdown feature flag",
+       "eventName": "shipping.international.slowdown",
+       "instrumentationScope": {
+        "name": "shipping::shipping_service"
+       },
+       "observedTimestamp": "2026-11-20T20:54:40.103471168Z",
+       "resource": {
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "process.command_args": "[\"./shipping\"]",
+        "process.pid": "1",
+        "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+        "process.runtime.name": "rustc",
+        "process.runtime.version": "1.98.0",
+        "service.criticality": "high",
+        "service.name": "shipping",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "rust",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "0.32.1"
+       },
+       "severity": {
+        "text": "INFO",
+        "number": 9
+       },
+       "spanId": "737ceadceee70a32",
+       "@timestamp": "1970-01-01T00:00:00Z",
+       "traceId": "72aa92cb2c64539ee73c7c3766b3060d"
+      },
+      "sort": [
+       1795208080103
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "sLa9-qEBmPE3-RMxWwdG",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:36.101854847Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "5c4aca76c9c7b08a",
+       "@timestamp": "2026-11-20T20:54:34.859137679Z",
+       "traceId": "36bfa9c288d96d038195ee5b61cbfc3d"
+      },
+      "sort": [
+       1795208076101
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Zra9-qEBmPE3-RMxNgaX",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:26.710412134Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "d7ca0f561d891f4d",
+       "@timestamp": "2026-11-20T20:54:25.530941383Z",
+       "traceId": "69067bc3c75b642229bac96422b1d58a"
+      },
+      "sort": [
+       1795208066710
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "P7a9-qEBmPE3-RMxMQZk",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:25.3793638Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "e1d5536183460acf",
+       "@timestamp": "2026-11-20T20:54:24.209756174Z",
+       "traceId": "4fad4ccdab24dee42557498a36ad5f1d"
+      },
+      "sort": [
+       1795208065379
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "QLa9-qEBmPE3-RMxIAUy",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "delay_secs": 5
+       },
+       "body": "Delaying international shipment due to intlShippingSlowdown feature flag",
+       "eventName": "shipping.international.slowdown",
+       "instrumentationScope": {
+        "name": "shipping::shipping_service"
+       },
+       "observedTimestamp": "2026-11-20T20:54:20.97616884Z",
+       "resource": {
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "process.command_args": "[\"./shipping\"]",
+        "process.pid": "1",
+        "process.runtime.description": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+        "process.runtime.name": "rustc",
+        "process.runtime.version": "1.98.0",
+        "service.criticality": "high",
+        "service.name": "shipping",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "rust",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "0.32.1"
+       },
+       "severity": {
+        "text": "INFO",
+        "number": 9
+       },
+       "spanId": "c511b1daa814d596",
+       "@timestamp": "1970-01-01T00:00:00Z",
+       "traceId": "ab20992fd5f3597f3e505d7f6b6f9f22"
+      },
+      "sort": [
+       1795208060976
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "F7a9-qEBmPE3-RMxGQVI",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:19.206646589Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "3b0069d5d8d5f647",
+       "@timestamp": "2026-11-20T20:54:17.942585546Z",
+       "traceId": "6878d26b8cdbd68aaeb3473b597417cd"
+      },
+      "sort": [
+       1795208059206
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Qra8-qEBmPE3-RMx-wQ-",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:11.517473627Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "f1c2a868bd5d4ec6",
+       "@timestamp": "2026-11-20T20:54:10.313473084Z",
+       "traceId": "270ccf41a295dacefe76f237dd495d15"
+      },
+      "sort": [
+       1795208051517
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "vba8-qEBmPE3-RMx9AP9",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)",
+        "exception.type": "Error",
+        "service.name": "payment"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.66.0"
+       },
+       "observedTimestamp": "2026-11-20T20:54:09.916067209Z",
+       "resource": {
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/usr/src/app/index.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "22.22.0",
+        "service.criticality": "critical",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "service.name": "payment",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.9.0"
+       },
+       "severity": {
+        "text": "warn",
+        "number": 13
+       },
+       "spanId": "2e140a9ecf29b6cf",
+       "@timestamp": "2026-11-20T20:54:08.755Z",
+       "traceId": "3870e90dbc021fa8f69c941e78f44fef"
+      },
+      "sort": [
+       1795208049916
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "kLa8-qEBmPE3-RMx7wPB",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:08.575788584Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "3759a35d9b43f310",
+       "@timestamp": "2026-11-20T20:54:07.384538125Z",
+       "traceId": "617bc112fd3d0c5a82bdfc30959c3cd3"
+      },
+      "sort": [
+       1795208048575
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Tra8-qEBmPE3-RMx6gOC",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)",
+        "exception.type": "Error",
+        "service.name": "payment"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.66.0"
+       },
+       "observedTimestamp": "2026-11-20T20:54:07.23194125Z",
+       "resource": {
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/usr/src/app/index.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "22.22.0",
+        "service.criticality": "critical",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "service.name": "payment",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.9.0"
+       },
+       "severity": {
+        "text": "warn",
+        "number": 13
+       },
+       "spanId": "63d1e6096e199e0f",
+       "@timestamp": "2026-11-20T20:54:06.063Z",
+       "traceId": "8da7aab914098e44d4bae1948b4c98ee"
+      },
+      "sort": [
+       1795208047231
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "gra8-qEBmPE3-RMx0QKj",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:54:00.866857344Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "6214f9d297123ed7",
+       "@timestamp": "2026-11-20T20:53:59.820832427Z",
+       "traceId": "e9e251a4739ba4cb485bccf650d371da"
+      },
+      "sort": [
+       1795208040866
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "Cba8-qEBmPE3-RMxywIs",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:59.210501427Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "3c1c692f651df445",
+       "@timestamp": "2026-11-20T20:53:57.252237176Z",
+       "traceId": "eb3a3caad5445b728dc3d69ec00b6232"
+      },
+      "sort": [
+       1795208039210
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "0ba8-qEBmPE3-RMxxQGT",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:57.778700009Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "a87413b6467522cf",
+       "@timestamp": "2026-11-20T20:53:56.213092467Z",
+       "traceId": "4ec4504d61f435591c48390fb9e846ba"
+      },
+      "sort": [
+       1795208037778
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "97W8-qEBmPE3-RMxjf8A",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:43.296159461Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "53bbbfcbc1da2bf3",
+       "@timestamp": "2026-11-20T20:53:42.121530544Z",
+       "traceId": "e4c379e0a35534ad5fff4fd4c735673f"
+      },
+      "sort": [
+       1795208023296
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "ZrW8-qEBmPE3-RMxgv_L",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+        "exception.stacktrace": "Error: Payment request failed. Invalid token. demo.user_context.loyalty_level=gold\n    at module.exports.charge (/usr/src/app/charge.js:48:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Object.chargeServiceHandler [as charge] (/usr/src/app/index.js:22:22)",
+        "exception.type": "Error",
+        "service.name": "payment"
+       },
+       "body": "Payment request failed. Invalid token. demo.user_context.loyalty_level=gold",
+       "instrumentationScope": {
+        "name": "@opentelemetry/instrumentation-pino",
+        "version": "0.66.0"
+       },
+       "observedTimestamp": "2026-11-20T20:53:40.68235171Z",
+       "resource": {
+        "container.id": "a4113014fe2a1243ae8269a53eaa4bf56f0807e93b267d5875449bb63a4de212",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command": "/usr/src/app/index.js",
+        "process.command_args": "[\"/nodejs/bin/node\",\"/usr/src/app/index.js\"]",
+        "process.executable.name": "/nodejs/bin/node",
+        "process.executable.path": "/nodejs/bin/node",
+        "process.owner": "nonroot",
+        "process.pid": "1",
+        "process.runtime.description": "Node.js",
+        "process.runtime.name": "nodejs",
+        "process.runtime.version": "22.22.0",
+        "service.criticality": "critical",
+        "service.instance.id": "9b8da50a-f079-49c0-a0cd-bb2da5b00e98",
+        "service.name": "payment",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.sdk.language": "nodejs",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "2.9.0"
+       },
+       "severity": {
+        "text": "warn",
+        "number": 13
+       },
+       "spanId": "40216ee6e101bcb5",
+       "@timestamp": "2026-11-20T20:53:39.587Z",
+       "traceId": "8e238e1befe8fae590633d41cac65185"
+      },
+      "sort": [
+       1795208020682
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "rLW8-qEBmPE3-RMxb_4H",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:35.622198722Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "4f5a15b37ae093a0",
+       "@timestamp": "2026-11-20T20:53:34.462768304Z",
+       "traceId": "65e10d1434b2b7e7f46d4a2b59cdc602"
+      },
+      "sort": [
+       1795208015622
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "crW8-qEBmPE3-RMxZP7M",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:33.003249304Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "eb9e0574442185df",
+       "@timestamp": "2026-11-20T20:53:31.719604803Z",
+       "traceId": "c6b303d1bf68d60ee8a7c1d099b5c2e8"
+      },
+      "sort": [
+       1795208013003
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "KLW8-qEBmPE3-RMxP_2X",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:23.478638799Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "dd65656bb7e1ffb1",
+       "@timestamp": "2026-11-20T20:53:22.272767257Z",
+       "traceId": "629e9eea86b9efab6a38c2cc2a182c59"
+      },
+      "sort": [
+       1795208003478
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "H7W8-qEBmPE3-RMxOv3v",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:22.287180965Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "51245fb215458a09",
+       "@timestamp": "2026-11-20T20:53:21.262651965Z",
+       "traceId": "3c1aeb7052d627a8562d90ccd0457ff2"
+      },
+      "sort": [
+       1795208002287
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "brW8-qEBmPE3-RMxLPy0",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:18.64406238Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "a06fa7576844a9e4",
+       "@timestamp": "2026-11-20T20:53:17.452496213Z",
+       "traceId": "427e53e80cc4c17b54721de6f8db8b4f"
+      },
+      "sort": [
+       1795207998644
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "4rW8-qEBmPE3-RMxHvv-",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:15.133205753Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "edb2abf1d70295c8",
+       "@timestamp": "2026-11-20T20:53:13.949254503Z",
+       "traceId": "c8549eb55e0b4f6e356955b76b600d15"
+      },
+      "sort": [
+       1795207995133
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "NbW8-qEBmPE3-RMxDvv8",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "code.file.path": "go.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/obs_metrics.go",
+        "code.function.name": "go.opentelemetry.io/collector/scraper/scraperhelper.wrapObsMetrics.func1",
+        "code.line.number": 61,
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        },
+        "exception.message": "error reading process name for pid 99243: open /hostfs/proc/99243/status: no such file or directory; error reading process name for pid 99244: open /hostfs/proc/99244/status: no such file or directory; error reading process name for pid 99246: open /hostfs/proc/99246/status: no such file or directory; error reading process name for pid 99290: open /hostfs/proc/99290/status: no such file or directory; error reading process name for pid 99301: open /hostfs/proc/99301/status: no such file or directory; error reading cpu times for process \"pg_isready\" (pid 99320): open /hostfs/proc/99320/stat: no such file or directory; error reading memory info for process \"pg_isready\" (pid 99320): open /hostfs/proc/99320/statm: no such file or directory",
+        "exception.stacktrace": "go.opentelemetry.io/collector/scraper/scraperhelper.wrapObsMetrics.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/obs_metrics.go:61\ngo.opentelemetry.io/collector/scraper.ScrapeMetricsFunc.ScrapeMetrics\n\tgo.opentelemetry.io/collector/scraper@v0.159.0/metrics.go:24\ngo.opentelemetry.io/collector/scraper/scraperhelper.scrapeMetrics\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/controller.go:166\ngo.opentelemetry.io/collector/scraper/scraperhelper.NewMetricsController.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/controller.go:136\ngo.opentelemetry.io/collector/scraper/scraperhelper/internal/controller.(*Controller[...]).startScraping.func1\n\tgo.opentelemetry.io/collector/scraper/scraperhelper@v0.159.0/internal/controller/controller.go:126\nsync.(*WaitGroup).Go.func1\n\tsync/waitgroup.go:258",
+        "exception.type": "go.opentelemetry.io/collector/scraper/scrapererror.PartialScrapeError",
+        "scraper": "process"
+       },
+       "body": "Error scraping metrics",
+       "instrumentationScope": {
+        "attributes": {
+         "otelcol.component.id": "host_metrics",
+         "otelcol.component.kind": "receiver",
+         "otelcol_signal": "metrics"
+        },
+        "name": "go.opentelemetry.io/collector/service"
+       },
+       "observedTimestamp": "2026-11-20T20:53:11.035376501Z",
+       "resource": {
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "service.instance.id": "b1717153-031f-4acd-a4e1-f97eb22b6064",
+        "service.name": "otelcol-contrib",
+        "service.version": "0.159.0"
+       },
+       "severity": {
+        "text": "error",
+        "number": 17
+       },
+       "@timestamp": "2026-11-20T20:53:10.310238501Z"
+      },
+      "sort": [
+       1795207991035
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "_LW8-qEBmPE3-RMxDfop",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:10.566378418Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "484b7b7a5819fd69",
+       "@timestamp": "2026-11-20T20:53:10.107406293Z",
+       "traceId": "4cd5d12a3bb95b26ace10fad38d68c30"
+      },
+      "sort": [
+       1795207990566
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "R7W7-qEBmPE3-RMx9Pp2",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:04.245358304Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "caec676ce76c5803",
+       "@timestamp": "2026-11-20T20:53:03.155328387Z",
+       "traceId": "13caa832917bf95ac24b3724945317fc"
+      },
+      "sort": [
+       1795207984245
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "mrW7-qEBmPE3-RMx5Pnu",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:53:00.269461094Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "807a35a37089ac83",
+       "@timestamp": "2026-11-20T20:52:59.47655551Z",
+       "traceId": "680134cc3c6aac1e648a328ad2330e3e"
+      },
+      "sort": [
+       1795207980269
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "9rW7-qEBmPE3-RMx1_iU",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:52:56.851741634Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "13c7518ed67f125f",
+       "@timestamp": "2026-11-20T20:52:55.854129259Z",
+       "traceId": "4c9bf682a228d4c3fce68cf3f1369d73"
+      },
+      "sort": [
+       1795207976851
+      ]
+     },
+     {
+      "_index": "otel-logs-2026-11-20",
+      "_id": "QrW7-qEBmPE3-RMxyfhl",
+      "_score": null,
+      "_source": {
+       "attributes": {
+        "data_stream": {
+         "dataset": "default",
+         "namespace": "namespace",
+         "type": "record"
+        }
+       },
+       "body": "Feature Flag adManualGc enabled, performing a manual gc now",
+       "instrumentationScope": {
+        "name": "oteldemo.AdService"
+       },
+       "observedTimestamp": "2026-11-20T20:52:53.218995174Z",
+       "resource": {
+        "container.id": "2726003566d26ccfc832d8805ad6c7b1270aef9f322e5ae81d14baf3c4d69b32",
+        "host.arch": "arm64",
+        "host.cpu.cache.l2.size": "0",
+        "host.cpu.family": "",
+        "host.cpu.model.id": "0x000",
+        "host.cpu.model.name": "",
+        "host.cpu.stepping": "0",
+        "host.cpu.vendor.id": "Apple",
+        "host.name": "docker-desktop",
+        "os.description": "Linux bc57f66f9026 6.12.76-linuxkit #1 SMP Sat Jul 11 11:18:11 UTC 2026 aarch64",
+        "os.type": "linux",
+        "os.version": "6.12.76-linuxkit",
+        "process.command_line": "/opt/java/openjdk/bin/java -javaagent:/usr/src/app/opentelemetry-javaagent.jar -Xmx200m oteldemo.AdService",
+        "process.executable.path": "/opt/java/openjdk/bin/java",
+        "process.pid": "1",
+        "process.runtime.description": "Eclipse Adoptium OpenJDK 64-Bit Server VM 24.0.2+12",
+        "process.runtime.name": "OpenJDK Runtime Environment",
+        "process.runtime.version": "24.0.2+12",
+        "service.criticality": "medium",
+        "service.instance.id": "353c1adc-2826-46b3-a656-d05c612808b3",
+        "service.name": "ad",
+        "service.namespace": "opentelemetry-demo",
+        "service.version": "3.0.0",
+        "telemetry.distro.name": "opentelemetry-java-instrumentation",
+        "telemetry.distro.version": "2.31.1",
+        "telemetry.sdk.language": "java",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.65.0"
+       },
+       "severity": {
+        "text": "WARN",
+        "number": 13
+       },
+       "spanId": "fc9c07989f37e3c4",
+       "@timestamp": "2026-11-20T20:52:52.14248259Z",
+       "traceId": "43e1df5f6a31cbd33004cbcb237f7bde"
+      },
+      "sort": [
+       1795207973218
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

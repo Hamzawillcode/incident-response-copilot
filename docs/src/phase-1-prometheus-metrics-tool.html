@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 1 — Prometheus Metrics Tool</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.2pt; line-height:1.48; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.5pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:9pt; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:150mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .ok { color:var(--ok); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .qa dt { font-weight:700; margin-top:7pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 1</div>
+  <h1>Prometheus Metrics Tool</h1>
+  <div class="sub"><code>query_metrics(promql, minutes) -&gt; dict</code>: a read-only, summarising and flag-isolated window onto the demo's metrics, built as the first tool our future agents will use.</div>
+  <table>
+    <tr><td>Date completed</td><td>21 November 2026</td></tr>
+    <tr><td>Code</td><td><code>copilot/tools/metrics.py</code> (412 lines, one dependency: httpx 0.28.1)</td></tr>
+    <tr><td>Tests</td><td><span class="ok">83 passed</span> (79 unit tests on recorded responses + 4 live) · hermetic run: 79 passed, 4 skipped</td></tr>
+    <tr><td>Target</td><td>Prometheus 3.13.1 of OpenTelemetry Demo 3.1.0 at <code>http://localhost:9090</code></td></tr>
+    <tr><td>Python</td><td>3.14.2 (project requires ≥ 3.11), pytest 8.4.2</td></tr>
+  </table>
+</section>
+
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>Goal and scope</li>
+  <li>What we built</li>
+  <li>Prometheus concepts you need</li>
+  <li>What we found in the real environment</li>
+  <li>Architecture</li>
+  <li>Design decisions</li>
+  <li>Code walkthrough</li>
+  <li>Output contract</li>
+  <li>Examples (real output)</li>
+  <li>Testing</li>
+  <li>Feature-flag isolation in depth</li>
+  <li>Troubleshooting</li>
+  <li>Interview questions</li>
+  <li>Limitations, files and next steps</li>
+</ol>
+</section>
+
+<h2>1. Goal and scope</h2>
+<p>Phase 1 builds the first tool the copilot's agents will call: a function that answers "what has this metric been doing over the last <i>N</i> minutes?" from Prometheus. The requirements were:</p>
+<ul>
+  <li>connect via <code>PROMETHEUS_URL</code> and use the Prometheus HTTP API;</li>
+  <li>return minimum, maximum, latest value and trend, i.e. a <b>summary</b> rather than raw samples;</li>
+  <li>handle errors, timeouts and empty responses;</li>
+  <li>be strictly <b>read-only</b>;</li>
+  <li>be tested against recorded Prometheus responses wherever possible.</li>
+</ul>
+<p>Out of scope: AI agents, and log, trace or other tools. The project's standing security requirement (from Phase 0) also applies: <b>diagnosis must not be able to read feature-flag state.</b></p>
+
+<h2>2. What we built</h2>
+<table>
+  <tr><th style="width:36%">Artifact</th><th>Purpose</th></tr>
+  <tr><td><code>copilot/tools/metrics.py</code></td><td>The tool: validation, flag guard, read-only HTTP, summarisation, trend.</td></tr>
+  <tr><td><code>scripts/record_prometheus_fixtures.py</code></td><td>Records 10 real <code>query_range</code> responses from the running demo.</td></tr>
+  <tr><td><code>tests/fixtures/prometheus/*.json</code></td><td>The recordings: success, empty, NaN, <code>infos</code>, 400, 422, flag-bearing, 28-series.</td></tr>
+  <tr><td><code>tests/test_metrics.py</code>, <code>conftest.py</code></td><td>79 unit tests replaying recordings through <code>httpx.MockTransport</code>.</td></tr>
+  <tr><td><code>tests/test_metrics_live.py</code></td><td>4 integration tests; auto-skip when Prometheus is down.</td></tr>
+  <tr><td><code>pyproject.toml</code>, <code>.gitignore</code></td><td>Packaging (<code>pip install -e '.[dev]'</code>) and pytest configuration.</td></tr>
+  <tr><td><code>README.md</code>, <code>DECISIONS.md</code></td><td>Usage and the decision log (D-001…D-110).</td></tr>
+</table>
+
+<h2>3. Prometheus concepts you need</h2>
+<h3>Data model</h3>
+<p>A <b>time series</b> is a metric name plus a unique set of <b>labels</b>, e.g. <code>traces_span_metrics_calls_total{service_name="checkout", span_name="…", status_code="STATUS_CODE_UNSET"}</code>, holding <b>samples</b> (timestamp, float64). Every distinct label combination is a separate series; we saw 5,523 in Phase 0.</p>
+<table>
+  <tr><th style="width:16%">Type</th><th>Meaning</th><th style="width:42%">Example from the demo</th></tr>
+  <tr><td>Counter</td><td>Only goes up (resets on restart). Use <code>rate()</code>.</td><td><code>traces_span_metrics_calls_total</code></td></tr>
+  <tr><td>Gauge</td><td>Goes up and down. Use it directly.</td><td><code>container_memory_usage_total_bytes</code>, <code>system_cpu_utilization_ratio</code></td></tr>
+  <tr><td>Histogram</td><td>Cumulative <code>_bucket{le=…}</code> counters plus <code>_sum</code>/<code>_count</code>. Use <code>histogram_quantile()</code>.</td><td><code>traces_span_metrics_duration_milliseconds_bucket</code></td></tr>
+</table>
+<h3>Instant vs range queries</h3>
+<ul>
+  <li><code>/api/v1/query</code> evaluates the expression at <b>one</b> time and returns a <i>vector</i>.</li>
+  <li><code>/api/v1/query_range</code> evaluates it at every <b>step</b> between <code>start</code> and <code>end</code> and returns a <i>matrix</i> (a list of series, each with <code>values: [[ts, "value"], …]</code>). Values are <b>strings</b> so that <code>"NaN"</code> and <code>"+Inf"</code> survive JSON.</li>
+  <li>For each step, Prometheus looks back up to <b>lookback-delta</b> (5 m here) for the latest sample. That's why a series keeps producing points for up to 5 minutes after its source goes silent.</li>
+</ul>
+<h3>rate() and window size</h3>
+<p><code>rate(x[5m])</code> computes the per-second increase of a counter using the samples inside the 5-minute window. It needs <b>at least two samples</b> in the window. In this demo samples arrive every <b>60 s</b>, so <code>[1m]</code> often holds only one and returns nothing (we hit this in Phase 0). Use <code>[2m]</code> at minimum, <code>[5m]</code> to be safe.</p>
+<h3>How OTLP metrics are named in Prometheus</h3>
+<p>The Collector pushes OTLP to Prometheus's OTLP receiver. Dots become underscores, units and <code>_total</code> are appended (<code>traces.span.metrics.calls</code> → <code>traces_span_metrics_calls_total</code>), and <code>service.namespace/service.name</code> becomes <code>job="opentelemetry-demo/checkout"</code>. Some resource attributes are promoted to labels (<code>service_name</code>, <code>container_name</code>, …).</p>
+<h3>RED and USE</h3>
+<p><b>RED</b> (Rate, Errors, Duration) for request-driven services comes from span metrics. <b>USE</b> (Utilisation, Saturation, Errors) for resources comes from <code>docker_stats</code> and <code>host_metrics</code>. §9 shows one real query of each kind.</p>
+
+<h2 class="page-break">4. What we found in the real environment</h2>
+<p>Nothing was assumed: every value below was read from the running demo before writing code.</p>
+<table>
+  <tr><th style="width:34%">Fact</th><th>Value and how we know it</th></tr>
+  <tr><td>Host URL</td><td><code>http://localhost:9090</code>. Compose publishes <code>9090:9090</code> (merged <code>docker compose config</code>). Inside the Docker network: <code>prometheus:9090</code> (<code>PROMETHEUS_ADDR</code> in <code>.env</code>).</td></tr>
+  <tr><td>Version</td><td>3.13.1 (<code>/api/v1/status/buildinfo</code>)</td></tr>
+  <tr><td>Server flags</td><td><code>query.timeout=2m</code>, <code>query.lookback-delta=5m</code>, <code>query.max-samples=50000000</code>, <code>storage.tsdb.retention.time=1w</code>, <code>web.enable-admin-api=false</code>, <b><code>web.enable-lifecycle=true</code></b>, <code>web.enable-otlp-receiver=true</code> (<code>/api/v1/status/flags</code>)</td></tr>
+  <tr><td>Sample interval</td><td><b>60 s</b>, measured from raw samples of span metrics, HTTP server metrics and host metrics</td></tr>
+  <tr><td>Useful metric families</td><td><code>traces_span_metrics_calls_total</code>, <code>traces_span_metrics_duration_milliseconds_*</code>, <code>http_server_request_duration_seconds_*</code>, <code>rpc_server_duration_milliseconds_*</code>, <code>container_memory_usage_total_bytes{container_name}</code> (28 containers), <code>system_cpu_utilization_ratio{state}</code></td></tr>
+  <tr><td>Absent metric we nearly assumed</td><td><code>container_memory_rss_bytes</code> is enabled in the Collector config but has <b>no series</b> in Prometheus; we used <code>container_memory_usage_total_bytes</code> instead</td></tr>
+  <tr><td>Flag-revealing metrics</td><td><code>feature_flag_evaluation_requests_total</code>, <code>…_success_total</code>, <code>…_active_count</code> (from <code>cart</code>), with labels <code>feature_flag_key</code>, <code>feature_flag_result_variant</code>, <code>feature_flag_provider_name</code>, <code>feature_flag_result_reason</code></td></tr>
+  <tr><td>Flag-revealing label values</td><td><code>job</code>: <code>opentelemetry-demo/flagd</code>, <code>…/flagd-ui</code>; <code>service_name</code>/<code>container_name</code>: <code>flagd</code>, <code>flagd-ui</code>; <code>span_name</code>: <code>flagd.evaluation.v2.Service/ResolveBoolean</code>, <code>router flagservice egress</code>, …</td></tr>
+  <tr><td>Shell proxy variables</td><td><code>HTTP_PROXY</code>, <code>HTTPS_PROXY</code>, <code>ALL_PROXY</code> = <code>http://172.31.2.3:8080</code> (college proxy)</td></tr>
+</table>
+<div class="callout bad"><b>Why <code>web.enable-lifecycle=true</code> matters</b>With it, <code>POST /-/quit</code> shuts Prometheus down and <code>POST /-/reload</code> reloads config, with no authentication. "Read-only" therefore can't be a promise in a docstring; it has to be enforced in code (§6, D-102).</div>
+
+<h2>5. Architecture</h2>
+<figure>
+<svg viewBox="0 0 800 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6475"/></marker></defs>
+  <style>
+    .rb{fill:#fff;stroke:#2f5bd3;stroke-width:1.3}
+    .rg{fill:#fdecea;stroke:#b42318;stroke-width:1.3}
+    .rd{fill:#f1f4f9;stroke:#5b6475;stroke-width:1.2}
+    .rf{fill:#f7f9fd;stroke:#2f5bd3;stroke-width:1.5;stroke-dasharray:5 3}
+    .rh{font-size:11.5px;font-weight:700;fill:#1d2330;text-anchor:middle}
+    .rt{font-size:9.6px;fill:#5b6475;text-anchor:middle}
+    .rl{stroke:#5b6475;stroke-width:1.3;fill:none}
+    .rn{font-size:9.4px;fill:#5b6475}
+  </style>
+  <rect class="rd" x="10" y="115" width="110" height="60" rx="8"/><text class="rh" x="65" y="140">Caller</text><text class="rt" x="65" y="156">(future agent,</text><text class="rt" x="65" y="168">tests, REPL)</text>
+  <rect class="rf" x="140" y="20" width="490" height="260" rx="10"/>
+  <text class="rh" x="385" y="40">copilot/tools/metrics.py · query_metrics(promql, minutes)</text>
+  <rect class="rb" x="155" y="60" width="105" height="56" rx="6"/><text class="rh" x="207" y="82">_validate</text><text class="rt" x="207" y="97">types, ranges,</text><text class="rt" x="207" y="108">length</text>
+  <rect class="rg" x="275" y="60" width="105" height="56" rx="6"/><text class="rh" x="327" y="82">_guard_query</text><text class="rt" x="327" y="97">flag words, __name__,</text><text class="rt" x="327" y="108">bare {…} selectors</text>
+  <rect class="rb" x="395" y="60" width="105" height="56" rx="6"/><text class="rh" x="447" y="82">params</text><text class="rt" x="447" y="97">start/end, step,</text><text class="rt" x="447" y="108">timeout</text>
+  <rect class="rb" x="515" y="60" width="105" height="56" rx="6"/><text class="rh" x="567" y="82">_get</text><text class="rt" x="567" y="97">GET-only, 1 path,</text><text class="rt" x="567" y="108">10 MiB cap</text>
+  <path class="rl" d="M260,88 L273,88" marker-end="url(#ra)"/><path class="rl" d="M380,88 L393,88" marker-end="url(#ra)"/><path class="rl" d="M500,88 L513,88" marker-end="url(#ra)"/>
+  <rect class="rb" x="515" y="200" width="105" height="56" rx="6"/><text class="rh" x="567" y="222">_interpret</text><text class="rt" x="567" y="237">status, errors,</text><text class="rt" x="567" y="248">redaction</text>
+  <rect class="rg" x="395" y="200" width="105" height="56" rx="6"/><text class="rh" x="447" y="222">scrub series</text><text class="rt" x="447" y="237">drop flag labels</text><text class="rt" x="447" y="248">(silently)</text>
+  <rect class="rb" x="275" y="200" width="105" height="56" rx="6"/><text class="rh" x="327" y="222">_summarise</text><text class="rt" x="327" y="237">min/max/latest,</text><text class="rt" x="327" y="248">NaN handling</text>
+  <rect class="rb" x="155" y="200" width="105" height="56" rx="6"/><text class="rh" x="207" y="222">_trend</text><text class="rt" x="207" y="237">quarter medians,</text><text class="rt" x="207" y="248">±10 %</text>
+  <path class="rl" d="M515,228 L502,228" marker-end="url(#ra)"/><path class="rl" d="M395,228 L382,228" marker-end="url(#ra)"/><path class="rl" d="M275,228 L262,228" marker-end="url(#ra)"/>
+  <rect class="rd" x="665" y="115" width="125" height="60" rx="8"/><text class="rh" x="727" y="138">Prometheus 3.13.1</text><text class="rt" x="727" y="154">localhost:9090</text><text class="rt" x="727" y="166">/api/v1/query_range</text>
+  <path class="rl" d="M620,88 C660,88 680,100 700,113" marker-end="url(#ra)"/><text class="rn" x="636" y="80">GET</text>
+  <path class="rl" d="M712,177 C690,210 650,228 622,228" marker-end="url(#ra)"/><text class="rn" x="718" y="206">JSON matrix</text>
+  <path class="rl" d="M120,138 C138,120 140,95 153,88" marker-end="url(#ra)"/>
+  <path class="rl" d="M155,228 C135,222 128,190 122,162" marker-end="url(#ra)"/><text class="rn" x="18" y="198">dict: ok / no_data /</text><text class="rn" x="18" y="210">error (never raises)</text>
+</svg>
+<figcaption>Figure 1. Request path (top row) and response path (bottom row). Red boxes are the two feature-flag isolation layers; errors short-circuit back to the caller as <code>{"status": "error", …}</code>.</figcaption>
+</figure>
+
+<h2 class="page-break">6. Design decisions</h2>
+<p>Full rationale is in <code>DECISIONS.md</code>; summary:</p>
+<table>
+  <tr><th style="width:9%">ID</th><th style="width:31%">Decision</th><th>Why</th></tr>
+  <tr><td>D-101</td><td><code>httpx</code>, <code>trust_env=False</code></td><td>Timeouts, streaming and a built-in mock transport; the college <code>HTTP(S)_PROXY</code>/<code>ALL_PROXY</code> must never carry observability traffic.</td></tr>
+  <tr><td>D-102</td><td>Only <code>GET /api/v1/query_range</code></td><td>Lifecycle endpoints are live; one allow-listed helper is the module's only network call.</td></tr>
+  <tr><td>D-103</td><td>Never raise; <code>status</code> + typed <code>error.type</code></td><td>Agents branch on data, not exceptions. <code>no_data</code> is evidence, not failure.</td></tr>
+  <tr><td>D-104</td><td>Summaries, top-N by latest, noisy labels dropped</td><td>Small, focused LLM context; strict JSON even with NaN samples.</td></tr>
+  <tr><td>D-105</td><td>Trend: quarter medians, ±10 % of mean</td><td>Replaced a whole-window regression that contradicted the visible numbers on live data (§7).</td></tr>
+  <tr><td>D-106</td><td>Step = max(60 s, window/240)</td><td>Samples arrive every 60 s; a 15 s step repeated each value 4×.</td></tr>
+  <tr><td>D-107</td><td>Guard + scrub + redact, no redaction count</td><td>Flag state is hidden ground truth; a dropped-series count would itself leak it.</td></tr>
+  <tr><td>D-108</td><td>Recorded fixtures + auto-skipping live tests</td><td>Hermetic, fast, and faithful to the real Prometheus format.</td></tr>
+  <tr><td>D-109</td><td>Default URL <code>http://localhost:9090</code></td><td>Matches the fixed port published by Compose.</td></tr>
+</table>
+
+<h2>7. Code walkthrough</h2>
+<h3>7.1 Public entry point (control flow)</h3>
+<pre><code>def query_metrics(promql, minutes, *, max_series=20, client=None) -&gt; dict:
+    base = {"query": promql, "window_minutes": minutes}
+    if problem := _validate(promql, minutes, max_series):   return _error(base, "invalid_input", problem)
+    if refusal := _guard_query(promql):                       return _error(base, "forbidden_query", refusal)
+    ...                                                       # PROMETHEUS_URL check -&gt; "configuration"
+    end = _now(); start = end - minutes*60; step = _step_seconds(minutes)
+    params = {"query": promql, "start": ..., "end": ..., "step": str(step), "timeout": "10s"}
+    try:
+        status_code, body = _get(client, QUERY_RANGE_PATH, params)
+    except httpx.TimeoutException:  return _error(base, "timeout", ...)
+    except httpx.TransportError:    return _error(base, "connection", ...)
+    except _ResponseTooLarge:       return _error(base, "response_too_large", ...)
+    return _interpret(base, status_code, body, end, max_series)</code></pre>
+<p class="muted">(Condensed; see the file for the full version.) The <code>client</code> parameter exists for tests. Production callers use the defaults, and the function then builds and closes its own <code>httpx.Client</code>. The <code>timeout</code> parameter asks Prometheus to abandon the query server-side at the same moment the client would give up, so a slow query doesn't keep running after we've stopped waiting.</p>
+
+<h3>7.2 The guard (before any network I/O)</h3>
+<pre><code>_FLAG_PATTERN  = re.compile(r"feature[\s_.\-]?flag|flagd|flagservice|openfeature", re.IGNORECASE)
+_BARE_SELECTOR = re.compile(r"(?:^|[^\w:\s])\s*\{")       # '{' not directly after a metric name
+
+def _guard_query(promql):
+    if _FLAG_PATTERN.search(promql):                        # checked on the FULL text, strings included
+        return "Queries about feature flags or the flag service are not permitted."
+    code = _STRING_LITERAL.sub('""', promql)                 # ignore braces/words inside "..."
+    if "__name__" in code:
+        return "Selecting metrics by __name__ is not permitted; name the metric explicitly."
+    if _BARE_SELECTOR.search(code):
+        return "Selectors must start with a metric name, e.g. http_server_request_duration_seconds_count{...}."</code></pre>
+<p>The flag check runs on the raw text, so <code>job="opentelemetry-demo/flagd"</code> is caught inside a string. The structural checks run on text with string literals blanked, so <code>http_route="/api/{id}"</code> isn't mistaken for a bare selector (there's a test for exactly that).</p>
+
+<h3>7.3 The only network call</h3>
+<pre><code>def _get(client, path, params):
+    if path not in _ALLOWED_GET_PATHS:                      # {"/api/v1/query_range"}
+        raise ValueError(f"path {path!r} is not allow-listed")
+    with client.stream("GET", path, params=params) as resp:
+        ...                                                 # read chunks; abort past 10 MiB
+        body = json.loads(raw)  # or the decoded text if it is not JSON (e.g. a proxy's HTML 502)
+        return resp.status_code, body</code></pre>
+<p>Streaming with a byte cap protects the process from a runaway result (e.g. an un-aggregated selector over all series).</p>
+
+<h3>7.4 Interpreting the response</h3>
+<ul>
+  <li>Non-JSON body → <code>http_error</code> with a short, redacted snippet.</li>
+  <li><code>"status": "error"</code> or HTTP ≥ 400 → Prometheus <code>errorType</code> mapped: <code>bad_data→bad_query</code>, <code>execution→query_execution</code>, <code>timeout|canceled→timeout</code>, <code>unavailable</code>, <code>internal→prometheus_internal</code>, anything else → <code>http_error</code>. The message is redacted and capped at 300 characters.</li>
+  <li><code>warnings</code> <b>and</b> <code>infos</code> (Prometheus 3 puts "might not be a counter" under <code>infos</code>) are redacted and passed through as <code>warnings</code>.</li>
+  <li>Flag-related series are dropped; the rest are summarised, sorted by <code>latest</code> descending, and truncated to <code>max_series</code>. An empty result gives <code>no_data</code>.</li>
+</ul>
+
+<h3>7.5 Summarising one series</h3>
+<p>Each <code>[ts, "value"]</code> pair is parsed; non-finite values (<code>NaN</code>, <code>±Inf</code>) are counted in <code>non_finite_points</code> and excluded. The summary has <code>min</code>, <code>max</code>, <code>mean</code>, <code>first</code>, <code>latest</code> (with ISO timestamp and age), <code>change</code>, <code>change_percent</code> (<code>null</code> when <code>first</code> is 0) and the trend fields. Values are rounded to 6 significant digits; labels such as <code>host_*</code>, <code>telemetry_sdk_*</code> and <code>service_instance_id</code> are dropped, and <code>__name__</code> is shown as <code>metric</code>.</p>
+
+<h3>7.6 Trend, and the bug that live data revealed</h3>
+<pre><code>def _trend(values):
+    if len(values) &lt; 2: return "insufficient_data", None, None
+    k = max(1, len(values) // 4)
+    early, recent = statistics.median(values[:k]), statistics.median(values[-k:])
+    if max(values) == min(values): return "flat", early, recent
+    relative = (recent - early) / max(abs(statistics.fmean(values)), 1e-12)
+    return ("increasing" if relative &gt; 0.10 else "decreasing" if relative &lt; -0.10 else "flat"), early, recent</code></pre>
+<div class="callout warn"><b>Why not linear regression?</b>Version 1 fitted a least-squares line over the whole window with a 5 % threshold. Unit tests passed, but the first run against live data returned checkout p95 latency as <code>trend: "increasing"</code> next to <code>change: -25.6%</code>, and product-catalog rate as <code>"decreasing"</code> next to <code>+0.5%</code>. The raw series showed the cause: latency <b>oscillated</b> between 34 and 50 ms (dip at 5–10 min, rise at 20 min), and the regression line followed that mid-window shape. Quarter medians describe "where it started vs where it is now", ignore single spikes, and come with the two medians that justify the verdict. A property test now checks, on every recorded real series, that the verdict agrees with those medians.</div>
+
+<h2 class="page-break">8. Output contract</h2>
+<table>
+  <tr><th style="width:26%">Field</th><th>Meaning</th></tr>
+  <tr><td><code>status</code></td><td><code>ok</code> · <code>no_data</code> · <code>error</code></td></tr>
+  <tr><td><code>query</code>, <code>window_minutes</code></td><td>Echo of the input (always present)</td></tr>
+  <tr><td><code>start</code>, <code>end</code>, <code>step_seconds</code></td><td>Evaluated range (ISO-8601 UTC) and step, present once a request was built</td></tr>
+  <tr><td><code>series_count</code>, <code>returned_series</code>, <code>truncated</code></td><td>Visible series after scrubbing, how many are returned, whether more exist</td></tr>
+  <tr><td><code>warnings</code></td><td>Redacted Prometheus warnings/infos, if any</td></tr>
+  <tr><td><code>series[].labels</code></td><td>Identifying labels (<code>__name__</code> → <code>metric</code>)</td></tr>
+  <tr><td><code>min</code>, <code>max</code>, <code>mean</code>, <code>first</code>, <code>latest</code></td><td>Over finite points in the window</td></tr>
+  <tr><td><code>latest_timestamp</code>, <code>latest_age_seconds</code></td><td>When the last finite point was evaluated. Because of the 5 m lookback, the age grows only after a series has been silent for 5 minutes.</td></tr>
+  <tr><td><code>change</code>, <code>change_percent</code></td><td><code>latest − first</code>, and as % of <code>|first|</code> (<code>null</code> if <code>first</code> = 0)</td></tr>
+  <tr><td><code>trend</code>, <code>early_median</code>, <code>recent_median</code></td><td>Direction and the numbers it is based on</td></tr>
+  <tr><td><code>points</code>, <code>non_finite_points</code></td><td>Finite points used; NaN/Inf points skipped</td></tr>
+  <tr><td><code>error.type</code>, <code>error.message</code></td><td><code>invalid_input</code>, <code>forbidden_query</code>, <code>configuration</code>, <code>bad_query</code>, <code>query_execution</code>, <code>timeout</code>, <code>connection</code>, <code>unavailable</code>, <code>prometheus_internal</code>, <code>http_error</code>, <code>invalid_response</code>, <code>response_too_large</code></td></tr>
+</table>
+<p>Configuration: <code>PROMETHEUS_URL</code> (default <code>http://localhost:9090</code>), <code>PROMETHEUS_TIMEOUT_SECONDS</code> (10; valid 0–120), <code>PROMETHEUS_MIN_STEP_SECONDS</code> (60; valid 1–3600). Invalid values fall back to the defaults.</p>
+
+<h2>9. Examples (real output, 20 Nov 2026 ~20:20 UTC)</h2>
+<p>Produced against the running demo; the full output is saved in <code>docs/assets/phase-1/live-examples.txt</code>.</p>
+<h3>RED: Rate. <code>sum by (service_name) (rate(traces_span_metrics_calls_total[5m]))</code>, 15 min, max_series=3</h3>
+<pre><code>status=ok  step=60  series_count=18 (20 services exist; flagd and flagd-ui removed)  returned=3  truncated=true
+frontend-proxy   min 32.55  max 35.79  first 34.23  latest 33.30  early 34.41  recent 32.94  trend flat  points 16
+frontend         min 27.93  max 30.49  first 29.35  latest 28.48  early 29.61  recent 28.34  trend flat  points 16
+product-catalog  min 10.75  max 11.74  first 11.27  latest 11.03  early 11.63  recent 10.98  trend flat  points 16</code></pre>
+<h3>RED: Duration. Checkout p95 latency (ms), 30 min</h3>
+<pre><code>labels {}  min 34.21  max 47.79  first 47.04  latest 36.67  early 36.48  recent 43.20  trend increasing  points 31</code></pre>
+<p class="muted">The <code>first</code> point sat on a spike, so <code>change</code> is negative, but over the window latency rose from a median of 36.5 to 43.2 ms (+17 % of the mean). The two medians make that explicit.</p>
+<h3>RED: Errors. Error ratio per service, 30 min, max_series=3</h3>
+<pre><code>load-generator   min 0.0309  max 0.0536  latest 0.0353  early 0.0359  recent 0.0427  trend increasing
+ad               min 0       max 0.0072  latest 0       early 0.0049  recent 0       trend decreasing
+fraud-detection  min 0       max 0.0589  latest 0       early 0.0338  recent 0       trend decreasing</code></pre>
+<p class="muted">With all flags off, load-generator's ~3–5 % error ratio is the known <code>/prompt</code> chatbot noise from Phase 0 (D-002), a useful reminder that a baseline is needed before calling anything an incident.</p>
+<h3>USE: Kafka container memory (bytes), 60 min</h3>
+<pre><code>container_memory_usage_total_bytes{container_name="kafka"}
+min 555,188,000  max 645,030,000  early 574,544,000  recent 605,731,000  trend flat  points 41</code></pre>
+<p class="muted">41 rather than 61 points: the window began before the stack (re)started at 19:39 UTC.</p>
+<h3>No data, syntax error, forbidden</h3>
+<pre><code>traces_span_metrics_calls_total{service_name="does-not-exist"}
+  -&gt; status=no_data, series=[], message="The query is valid but matched no data in this window."
+sum(rate(traces_span_metrics_calls_total[5m])
+  -&gt; status=error, type=bad_query, "HTTP 400: invalid parameter \"query\": 1:46: parse error: unclosed left parenthesis"
+sum by (feature_flag_key) (feature_flag_evaluation_requests_total)
+  -&gt; status=error, type=forbidden_query, "Queries about feature flags or the flag service are not permitted."  (no request sent)</code></pre>
+
+<h2 class="page-break">10. Testing</h2>
+<h3>Strategy</h3>
+<ol>
+  <li><b>Record:</b> <code>scripts/record_prometheus_fixtures.py</code> issued 10 real range queries (30 min, 15 s step) and saved each request and raw response (status, content type, body).</li>
+  <li><b>Replay:</b> a pytest fixture serves a recording through <code>httpx.MockTransport</code> and <b>records every outgoing request</b>, so tests check behaviour and also confirm that nothing else was sent (method, path, parameters, number of calls).</li>
+  <li><b>Synthesise only what can't be recorded:</b> transport exceptions, specific trend shapes, oversized bodies, unknown error types.</li>
+  <li><b>Live:</b> 4 tests against the real Prometheus, auto-skipped when <code>/-/ready</code> doesn't answer.</li>
+</ol>
+<table>
+  <tr><th style="width:28%">Recorded fixture</th><th style="width:12%">HTTP</th><th>What it exercises</th></tr>
+  <tr><td>request_rate_by_service</td><td>200 · 20 series</td><td>Multi-series summary, ordering, removal of flagd/flagd-ui</td></tr>
+  <tr><td>checkout_p95_latency</td><td>200 · 1</td><td>Exact min/max/first/latest vs raw samples</td></tr>
+  <tr><td>frontend_memory_usage</td><td>200 · 1</td><td>Gauge, label trimming</td></tr>
+  <tr><td>all_container_memory</td><td>200 · 28</td><td>Truncation (max_series=5), flag container removal (26 remain)</td></tr>
+  <tr><td>empty_result</td><td>200 · 0</td><td><code>no_data</code></td></tr>
+  <tr><td>nan_values</td><td>200 · 1</td><td><code>"NaN"</code> strings, strict JSON output</td></tr>
+  <tr><td>rate_on_gauge_warning</td><td>200 · 21</td><td>Prometheus 3 <code>infos</code> annotation passthrough</td></tr>
+  <tr><td>bad_syntax</td><td>400</td><td><code>bad_data</code> → <code>bad_query</code></td></tr>
+  <tr><td>execution_error</td><td>422</td><td><code>execution</code> → <code>query_execution</code>; <b>message contained <code>job="…/flagd-ui"</code></b> → redaction</td></tr>
+  <tr><td>flag_metric_leak</td><td>200 · 2</td><td>Series with <code>feature_flag_key</code> are scrubbed even if a query slips through</td></tr>
+</table>
+<h3>Test catalogue (83)</h3>
+<table>
+  <tr><th style="width:34%">Group</th><th style="width:8%">Tests</th><th>Examples</th></tr>
+  <tr><td>Request shape &amp; read-only</td><td>9</td><td>single GET to <code>/api/v1/query_range</code> with correct params; step bounds; <code>/-/quit</code>, <code>/-/reload</code>, admin paths refused; proxy env ignored (real connect to 127.0.0.1:9)</td></tr>
+  <tr><td>Summaries (recorded)</td><td>7</td><td>values match raw samples; truncation; empty; NaN; infos</td></tr>
+  <tr><td>Prometheus errors</td><td>10</td><td>400, 422 (redacted), 5 error-type mappings, proxy HTML 502, wrong result type, &gt;10 MiB</td></tr>
+  <tr><td>Transport failures</td><td>3</td><td>read/connect timeout (exactly one attempt), connection refused</td></tr>
+  <tr><td>Validation &amp; config</td><td>17</td><td>11 bad inputs (incl. <code>True</code>, <code>5.0</code>, <code>"5"</code>), URL validation, timeout bounds</td></tr>
+  <tr><td>Flag isolation</td><td>16</td><td>9 refused queries (incl. <code>{__name__=~"feat.+"}</code>, <code>FlagD-UI</code>), 5 legitimate queries pass, scrub, redaction</td></tr>
+  <tr><td>Trend &amp; helpers</td><td>17</td><td>9 shapes, medians reported, consistency on 5 real recordings, zero-start, label trimming</td></tr>
+  <tr><td>Live</td><td>4</td><td>real rate, gauge, bad query, no flag text in output</td></tr>
+</table>
+<h3>Results</h3>
+<pre><code>$ .venv/bin/python -m pytest -q
+83 passed in 0.15s
+$ PROMETHEUS_URL=http://127.0.0.1:9 .venv/bin/python -m pytest -q     # Prometheus unreachable
+79 passed, 4 skipped in 0.08s
+$ .venv/bin/python -m pytest -q -m live                               # demo running
+4 passed, 79 deselected in 0.12s</code></pre>
+<h3>Failures we hit and fixed</h3>
+<table>
+  <tr><th style="width:38%">Failure</th><th>Cause and fix</th></tr>
+  <tr><td><code>series_count</code> 26 ≠ 27</td><td>Test bug: two flag containers (flagd and flagd-ui), not one. Expectation corrected.</td></tr>
+  <tr><td>Contradictory trends on live data</td><td>Design bug (§7.6). Algorithm replaced; property test added.</td></tr>
+  <tr><td><code>[40]*7+[90]</code> expected flat</td><td>Test bug: with 8 points a quarter is 2 points, and the median of 2 is their mean. Replaced with realistic lengths (20 points).</td></tr>
+  <tr><td>Oscillation test patched with a special case</td><td>Removed the hack. Hand calculation showed <code>[10,30,10,30,10,30]</code> really rises; added a symmetric case with slope 0.</td></tr>
+</table>
+
+<h2 class="page-break">11. Feature-flag isolation in depth</h2>
+<table>
+  <tr><th style="width:24%">Layer</th><th>What it stops</th><th style="width:30%">Example</th></tr>
+  <tr><td>1 · Query text</td><td>Any mention of feature flags, flagd, flagservice, OpenFeature (any case, inside strings too)</td><td><code>…{job="opentelemetry-demo/FlagD-UI"}</code></td></tr>
+  <tr><td>2 · <code>__name__</code> ban</td><td>Finding flag metrics by regex without spelling their names</td><td><code>count({__name__=~"feat.+"})</code></td></tr>
+  <tr><td>3 · Bare selector ban</td><td>Sweeping all of a job's metrics (including flag metrics) into counts</td><td><code>count({job="opentelemetry-demo/cart"})</code></td></tr>
+  <tr><td>4 · Result scrub</td><td>Series whose label names or values mention flags</td><td><code>{feature_flag_key="cartFailure"}</code></td></tr>
+  <tr><td>5 · Text redaction</td><td>Errors and annotations that quote series</td><td>422 message with <code>job="…/flagd-ui"</code> → <code>{&lt;redacted&gt;}</code></td></tr>
+  <tr><td>6 · No count</td><td>Using the number of hidden series as a signal</td><td>A new <code>variant="50%"</code> series would change a "redacted: N" counter</td></tr>
+</table>
+<div class="callout warn"><b>Residual risk (accepted, documented)</b>Aggregates over legitimate metrics still include flagd's activity: for example, total span volume rises slightly when services evaluate flags more often. These reveal activity, not which flag or variant. The system-wide control remains the telemetry gateway planned in Phase 0, which will strip flag data before it reaches any backend that agents can query.</div>
+
+<h2>12. Troubleshooting</h2>
+<table>
+  <tr><th style="width:36%">Symptom</th><th>Cause → fix</th></tr>
+  <tr><td><code>error.type = connection</code></td><td>Demo not running, or the wrong URL → <code>docker ps | grep prometheus</code>; <code>curl --noproxy '*' localhost:9090/-/ready</code>; check <code>PROMETHEUS_URL</code> (use <code>http://prometheus:9090</code> only from inside the Docker network).</td></tr>
+  <tr><td><code>error.type = configuration</code></td><td><code>PROMETHEUS_URL</code> lacks <code>http://</code>, or has a query string.</td></tr>
+  <tr><td><code>status = no_data</code> for a <code>rate(...[1m])</code></td><td>Window too short for 60 s samples → use <code>[5m]</code>.</td></tr>
+  <tr><td><code>no_data</code> right after <code>make start</code></td><td>Nothing has been pushed yet → wait 2–5 minutes.</td></tr>
+  <tr><td><code>no_data</code> for a filter on <code>service_name</code></td><td>Not every metric has that label → use <code>job="opentelemetry-demo/&lt;svc&gt;"</code> or check labels in the Prometheus UI.</td></tr>
+  <tr><td><code>forbidden_query</code> on a normal-looking query</td><td>It uses <code>{…}</code> without a metric name, <code>__name__</code>, or a flag-related word → name the metric explicitly.</td></tr>
+  <tr><td><code>bad_query</code></td><td>PromQL syntax → the message gives line:column, e.g. <code>1:46: parse error</code>.</td></tr>
+  <tr><td><code>query_execution</code> "found duplicate series"</td><td>Vector matching is ambiguous → aggregate both sides first (<code>sum by (...)</code>).</td></tr>
+  <tr><td><code>timeout</code></td><td>Query too expensive or Prometheus overloaded → aggregate, shorten the window, or raise <code>PROMETHEUS_TIMEOUT_SECONDS</code> (max 120).</td></tr>
+  <tr><td><code>response_too_large</code></td><td>Un-aggregated selector over many series → aggregate with <code>sum by</code>.</td></tr>
+  <tr><td><code>http_error</code> with HTML</td><td>Something other than Prometheus answered (e.g. a proxy) → check the URL. The tool ignores proxy env vars by design.</td></tr>
+  <tr><td><code>trend</code> looks wrong</td><td>Compare <code>early_median</code> with <code>recent_median</code>; <code>first</code>/<code>latest</code> are single points and can sit on spikes.</td></tr>
+  <tr><td>pytest can't import <code>copilot</code></td><td>Run from the project root, or <code>pip install -e '.[dev]'</code> (<code>pythonpath = ["."]</code> is set in <code>pyproject.toml</code>).</td></tr>
+</table>
+
+<h2 class="page-break">13. Interview questions</h2>
+<dl class="qa">
+<dt>1. Instant query vs range query?</dt>
+<dd>An instant query (<code>/api/v1/query</code>) evaluates once and returns a vector. A range query (<code>/api/v1/query_range</code>) evaluates at each step from start to end and returns a matrix. Trends need a range query.</dd>
+<dt>2. What do <code>step</code> and lookback-delta do?</dt>
+<dd>Step is the spacing of evaluation timestamps. At each one, Prometheus uses the newest sample within lookback-delta (5 m). A step smaller than the sample interval just repeats values; we measured 60 s samples and set a 60 s minimum step.</dd>
+<dt>3. Why does <code>rate(x[1m])</code> return nothing here?</dt>
+<dd><code>rate</code> needs two samples inside the window. With one sample per 60 s, a 1-minute window usually holds one.</dd>
+<dt>4. How do you get p95 latency from a histogram?</dt>
+<dd><code>histogram_quantile(0.95, sum by (le) (rate(x_bucket[5m])))</code>: take the rate of each cumulative bucket, keep <code>le</code> while aggregating, and interpolate. It returns NaN when there is no traffic, which is why the tool counts non-finite points.</dd>
+<dt>5. Counter vs gauge?</dt>
+<dd>Counters only increase (reset on restart). Query them with <code>rate</code>/<code>increase</code>. Gauges move both ways and are used directly. Prometheus 3 adds an info annotation when <code>rate()</code> is applied to something that doesn't look like a counter; our tool passes it on.</dd>
+<dt>6. Why summarise instead of returning raw samples to an LLM agent?</dt>
+<dd>Context cost and focus: a 24-hour query of the 18-service request rate returns 18 × 240 = 4,320 (timestamp, value) pairs, while the summary is 18 short records of about 15 fields each. Summaries also encode domain knowledge (NaN handling, trend) consistently instead of leaving it to the model.</dd>
+<dt>7. Why does the tool never raise?</dt>
+<dd>An agent loop should treat failures as information ("the query was wrong", "Prometheus is down") and adapt. Typed error categories let it react differently to a syntax error and an outage.</dd>
+<dt>8. How did you make it read-only, and why isn't "we only call GET" enough?</dt>
+<dd>One private function performs the only network call, with a GET-only allow-list containing a single path, and tests attempt <code>/-/quit</code> and admin paths. It matters because this Prometheus has the lifecycle API enabled. Defence in depth means a future refactor can't accidentally add a write.</dd>
+<dt>9. How do you test code that talks to an external service?</dt>
+<dd>Record real responses once, replay them through the HTTP library's transport layer, and assert on outgoing requests too. Add a small live suite that skips when the dependency is absent. Recordings caught details mocks would have missed: string-encoded <code>NaN</code>, <code>infos</code> vs <code>warnings</code>, and a 422 message that leaked a flagd label.</dd>
+<dt>10. Why median-of-quarters for trend rather than regression or first-vs-last?</dt>
+<dd>First-vs-last depends on two possibly noisy points. Regression is sensitive to shape: on live data it said "increasing" while the series ended 25 % lower. Quarter medians resist single spikes, summarise the start and end of the window, and come with the numbers that justify the verdict.</dd>
+<dt>11. How do you stop an agent learning the injected fault from metrics?</dt>
+<dd>Layered controls: refuse flag-related query text, ban <code>__name__</code> and metric-less selectors (obfuscation and sweeping), scrub flag-labelled series from results, redact error text, and never report how much was hidden. The system-wide fix is a gateway that strips the data before it reaches a store agents can query.</dd>
+<dt>12. Why ignore <code>HTTP_PROXY</code>?</dt>
+<dd>Observability data is internal. Sending queries and results through a third-party (here, college) proxy leaks them and adds a failure point. Explicit configuration beats implicit environment.</dd>
+<dt>13. What would you change for production?</dt>
+<dd>Authentication (bearer token or mTLS), a shared client with connection pooling, retries with backoff only for idempotent 503s, metrics about the tool itself (latency, error types), caching for repeated agent queries, and enforcing flag isolation at the gateway rather than per tool.</dd>
+<dt>14. What is high cardinality, and how does the tool handle it?</dt>
+<dd>Many label combinations mean many series. The tool caps the response at 10 MiB, returns at most <code>max_series</code> summaries with <code>truncated</code> set, and encourages aggregation via its error messages.</dd>
+</dl>
+
+<h2>14. Limitations, files and next steps</h2>
+<h3>Known limitations</h3>
+<ul>
+  <li>Trend is a direction label, not anomaly detection; it has no baseline or seasonality. That comes with the detection work.</li>
+  <li>Units aren't inferred; they are implied by metric names (<code>_bytes</code>, <code>_milliseconds</code>, <code>_ratio</code>).</li>
+  <li>Sorting by <code>latest</code> can hide a series that spiked earlier but has since recovered; callers can raise <code>max_series</code>.</li>
+  <li>The regex guard is heuristic; residual aggregate side channels are described in §11.</li>
+  <li>No Git commit was made: the project root isn't a Git repository (D-110). A <code>.gitignore</code> is ready.</li>
+</ul>
+<h3>Files (under <code>~/Desktop/Incident-response-copilot/</code>)</h3>
+<table>
+  <tr><td><code>copilot/tools/metrics.py</code></td><td>The tool</td></tr>
+  <tr><td><code>tests/test_metrics.py</code>, <code>tests/test_metrics_live.py</code>, <code>tests/conftest.py</code></td><td>Tests</td></tr>
+  <tr><td><code>tests/fixtures/prometheus/</code></td><td>10 recorded responses</td></tr>
+  <tr><td><code>scripts/record_prometheus_fixtures.py</code></td><td>Re-recorder</td></tr>
+  <tr><td><code>README.md</code>, <code>DECISIONS.md</code>, <code>pyproject.toml</code>, <code>.gitignore</code></td><td>Project docs and config</td></tr>
+  <tr><td><code>docs/phase-1-prometheus-metrics-tool.pdf</code> (+ <code>docs/src/</code> HTML, <code>docs/assets/phase-1/live-examples.txt</code>)</td><td>This document and its evidence</td></tr>
+</table>
+<h3>Next steps</h3>
+<ol>
+  <li>Equivalent read-only tools for traces (Jaeger) and logs (OpenSearch), with the same output discipline and flag isolation.</li>
+  <li>The system-wide telemetry gateway planned in Phase 0.</li>
+  <li>Baseline capture of normal RED/USE values, including known noise such as the <code>/prompt</code> errors.</li>
+  <li>A fault-injection harness, kept outside the agents' reach, to generate graded incidents.</li>
+</ol>
+
+</body>
+</html>
