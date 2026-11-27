@@ -183,3 +183,25 @@ def test_knowledge_tools_open_read_only_sessions(monkeypatch):
     search_runbooks("payment errors")
     search_postmortems("payment errors")
     assert fake.connections == [True, True]
+
+
+# --------------------------------------------------------------------------- #
+# Week 4: the write path is isolated
+# --------------------------------------------------------------------------- #
+PROMPTS_DIR = Path(__file__).resolve().parent.parent / "copilot" / "prompts"
+
+
+def test_read_only_tools_never_import_the_remediation_package():
+    for path in TOOLS_DIR.glob("*.py"):
+        tree = ast.parse(path.read_text())
+        modules = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
+        modules |= {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) and n.module}
+        assert not any(m.startswith("copilot.actions") for m in modules), path.name
+
+
+def test_no_prompt_mentions_the_fault_injection_mechanism():
+    prompts = sorted(PROMPTS_DIR.glob("*.md"))
+    assert {p.stem for p in prompts} >= {"diagnosis", "triage", "knowledge", "reviewer", "action"}
+    for path in prompts:
+        match = LEAK.search(path.read_text())
+        assert match is None, f"{path.name}: {match.group(0)!r}"

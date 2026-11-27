@@ -452,19 +452,31 @@ consequences. "Evidence" points to what we actually observed.
 
 ### D-411 Retrieval check (measured) and its limits
 - `eval/retrieval_queries.yaml`: 28 queries (20 that share words with the right document, 8 paraphrases), each with
-  the documents that count as correct. Run with `scripts/check_retrieval.py`.
-- **Keyword-only, 2026-11-27 (no Gemini key):**
+  the documents that count as correct. Run with `scripts/check_retrieval.py --mode keyword|vector|hybrid`.
+- **Measured 2026-11-27** (`gemini-embedding-001`, 768 dimensions; files in `runs/*-retrieval-*.json`):
 
-  | Queries | Count | hit@1 | hit@3 | MRR |
-  |---|---|---|---|---|
-  | Keyword-style | 20 | 1.00 | 1.00 | 1.00 |
-  | Paraphrases | 8 | 0.50 | 0.75 | 0.66 |
-  | All | 28 | 0.86 | 0.93 | 0.90 |
+  | Mode | All: hit@1 / hit@3 / MRR | Keyword-style (20): hit@1 / hit@3 | Paraphrases (8): hit@1 / hit@3 / MRR |
+  |---|---|---|---|
+  | keyword | 0.86 / 0.93 / 0.90 | 1.00 / 1.00 | 0.50 / 0.75 / 0.66 |
+  | vector | 0.96 / 1.00 / 0.98 | 1.00 / 1.00 | 0.88 / 1.00 / 0.94 |
+  | hybrid (default) | 0.93 / 1.00 / 0.96 | 1.00 / 1.00 | 0.75 / 1.00 / 0.85 |
 
-- **Week-3 done criterion met:** "checkout errors" returns the checkout runbook at rank 1 (target: top 3). "payment
-  charge errors" returns the payment runbook first.
+- **Week-3 done criterion met in every mode:** "checkout errors" returns the checkout runbook at rank 1 (target: top
+  3). "payment charge errors" returns the payment runbook first.
+- **What embeddings changed:** both paraphrase misses of keyword search ("customers cannot pay for their order",
+  "the suggestions service uses more and more RAM") are found in the top 3.
+- **Observation, reported as measured:** vector-only puts the right paraphrase document first once more than
+  hybrid (7/8 vs. 6/8). Keyword matches pulled two paraphrases down ("customers cannot pay…" rank 1 to 3,
+  "shoppers get an error…" rank 1 to 2) and lifted one ("fraud checks complete very late" rank 2 to 1).
+- **Decision: keep hybrid as the default and do not tune on this set.**
+  - The difference is one query out of 8, and hit@3 is identical (1.00).
+  - The agent reads the top 3–4 documents, not only the first.
+  - Real agent queries contain exact names (`oteldemo.PaymentService/Charge`, `valkey-cart:6379`) that this set does
+    not test.
+  - Re-weighting RRF to win on these 8 queries would be fitting the evaluation. The deciding measurement is the
+    agent-level ablation (Week 5), where the mode can be switched.
 - **Limits:** the same person wrote the documents and the queries, after reading the documents. This is a regression
-  check, not a benchmark. Hybrid retrieval is **not measured yet**: it needs the Gemini key.
+  check, not a benchmark.
 
 ### D-412 Test strategy for the knowledge base
 - Unit tests are hermetic: no database (connections blocked unless a test is marked `db`) and no Gemini (conftest
@@ -473,7 +485,292 @@ consequences. "Evidence" points to what we actually observed.
 - `db` tests run against the real Postgres. Each runs in a private schema (`kb_test_<random>`) that is dropped
   afterwards, and they are skipped when the database is down. An offline `HashingEmbedder` exercises the pgvector
   path without network access.
-- **Status:** 578 tests = 545 unit + 20 db + 13 live. 565 passed. The 13 live tests were skipped because the demo was
-  not running during this session. That is 151 new tests (427 before).
-- **Not yet done:** Gemini embeddings, the hybrid measurement and agent runs with `--knowledge`. All three need
-  `GOOGLE_API_KEY` in `.env`.
+- **Status:** 584 tests = 551 unit + 20 db + 13 live. 571 passed. The 13 live tests were skipped because the demo was
+  not running. That is 157 new tests (427 before).
+- **Not yet done:** agent runs with `--knowledge` (and the Week-2 runs without it). They need the demo running with a
+  fault switched on.
+
+### D-413 Gemini free tier in practice: per-minute limits, a new key format
+- **Rate limit on the first real ingestion:** embedding the 116 sections in batches of 50 got HTTP 429. The short
+  back-off (2, 4, 8 s) gave up inside the same minute, and, as designed, nothing was written. Single requests
+  succeeded right after, so the limit is per minute, not per day.
+- **Fix:**
+  - Wait as long as the API's `RetryInfo` asks (capped at 65 s), with up to 5 retries.
+  - Report a *daily* quota (a quota ID containing `PerDay`) at once as `quota_daily` instead of retrying.
+  - Print a progress line while waiting.
+  - The second run embedded all 116 sections in 24 s, including one 17 s wait.
+- **Evaluation queries are embedded in batches:** `warm_queries` embeds them before the run and caches them. The
+  retrieval check makes one request per 50 queries, so rate limits cannot turn into missing results.
+  Investigation-time queries stay single-attempt, falling back to keyword search.
+- **Key format:** the AI Studio key is in the newer `AQ.` format (53 characters), not the classic `AIza…` (39). Both
+  work with google-genai. Error messages now remove both formats, and tests use obviously fake keys so GitHub secret
+  scanning has nothing to flag.
+
+---
+
+## Phase 4 (Week 4): Agent team, human approval, Postgres state, tracing
+
+### D-501 Five specialist agents; the coordinator is code, not an LLM
+- **Agents** (ADK `LlmAgent`s, `copilot/agents/team.py`), each with one job, a tool budget and a structured output:
+
+  | Agent | Job | Tools (budget) | Output |
+  |---|---|---|---|
+  | triage | what is broken, how badly | the 5 telemetry tools (6) | `TriageReport` |
+  | knowledge | have we seen this before | `search_runbooks`, `search_postmortems` (4) | `KnowledgeReport` |
+  | diagnosis | why is it broken (ReAct) | all 7 read tools (15) | `Diagnosis` |
+  | reviewer | is the evidence solid | none | `Review` |
+  | action | what should we do | `rollback_config`, `restart_service`, `escalate_to_human` (1) | one tool call |
+
+- **Coordinator** (`copilot/agents/coordinator.py`): a fixed procedure in code. Triage, then knowledge, then
+  diagnosis and reviewer in a loop (at most 2 rounds), then action, then a pause for a human.
+- **Why code:** incident response has a known procedure, and the guarantees matter more than flexibility:
+  - review always comes before any action;
+  - the run always stops at the same place for a human;
+  - every step has a budget;
+  - a failed step leaves a record;
+  - every evaluation run has the same structure.
+
+  ADK's LLM-driven transfer (a coordinator `LlmAgent` with `sub_agents`) could skip the reviewer or act early. The
+  LLMs decide *within* steps (what to query, what the evidence means, what to propose).
+- Each agent receives the earlier agents' outputs as JSON sections in its message, so no prompt templating is
+  needed. The diagnosis agent gets an extra prompt section on using the triage report, the knowledge report and the
+  reviewer's questions (`diagnosis_team.md`). With `team=False` and `knowledge=False` it is still the Week-2 agent.
+
+### D-502 The write path is a separate package; the practice rollback stays hidden
+- `copilot/actions/` holds the only code that changes anything. `copilot/tools` stays read-only and never imports it
+  (AST test). Only the action agent gets these tools (test).
+- **`rollback_config(service)`** restores that service's fault-injection settings to their healthy values ("off").
+  Targeting rules keep their structure; only the variants they return change. This is the practice environment's
+  stand-in for a real rollback (Git revert, config-store version, deployment rollback):
+  - the service-to-settings mapping lives only in `remediation.py`;
+  - results talk about the service ("rolled back to its last known good version"), never the settings;
+  - results pass through `scrub_output`;
+  - no prompt or docstring mentions the mechanism (tests).
+- `restart_service` runs `docker restart -t 10 <service>`: an argument list, never a shell, limited to the 18 shop
+  services. flagd, the databases and the observability stack cannot be restarted.
+- `escalate_to_human` changes nothing.
+
+### D-503 Two locks on every change
+1. **ADK tool confirmation.** `FunctionTool(..., require_confirmation=True)` pauses the run with an
+   `adk_request_confirmation` event. Nothing runs until a confirmation response arrives.
+2. **The tool checks for itself.** Each write tool refuses to run unless its `tool_context` carries a *confirmed*
+   approval, so a direct call from code cannot bypass the human either (tested with no, rejected and empty contexts).
+
+Further rules:
+- One action per incident (budget 1).
+- **Finding (ADK 2.15 source, `flows/llm_flows/tools/_caller.py`):** `before_tool_callback` runs *before* the
+  confirmation gate, both when a call first pauses and again when the approved call resumes. A guard that counted
+  every invocation would have refused the approved action as "over budget". The new `tool_guard` counts each
+  function-call ID once.
+- Audit trail: every action call is appended to `runs/actions/audit.jsonl` (approver, incident, args, result), and a
+  rollback first backs up the settings file to `runs/actions/backups/`. `COPILOT_ACTIONS_DRY_RUN=1` reports without
+  changing anything.
+- The settings file is written to a temporary file and renamed, and its modification time always moves forward. The
+  demo mounts the directory, so a rename is visible in the container, and D-207 showed that flagd ignores a file
+  whose mtime did not change.
+
+### D-504 Pause and resume: one ADK session per step, stored in Postgres
+- Each step runs in its own ADK session (`<incident>-triage`, `<incident>-diagnosis-1`, `<incident>-action`, ...).
+  Each agent sees only its own conversation plus the JSON sections it is given (no mixing of agents' histories).
+- `DatabaseSessionService` stores sessions in the kb-postgres database, in its own schema `adk`. SQLAlchemy uses the
+  psycopg 3 driver in asyncio mode (`postgresql+psycopg://`), so no second Postgres driver is needed. ADK requires an
+  async driver and refuses a synchronous URL. `COPILOT_SESSIONS=memory` keeps everything in memory.
+- `decide()` answers the confirmation request in the stored action session (a function response named
+  `adk_request_confirmation` with `{"confirmed": ..., "payload": {"by", "note", "incident_id"}}`). ADK finds the
+  paused call, re-runs it if approved, and the agent closes with one sentence.
+- This works from **another process, hours later**: a test resumes with a new coordinator and a fresh
+  `DatabaseSessionService` that share nothing but Postgres.
+- `ResumabilityConfig` is not needed: each paused step is a single root `LlmAgent`, which ADK's node runtime resumes
+  from the function response.
+
+### D-505 Incident records with an exactly-once approval
+- Table `<KB_SCHEMA>.incidents`: `id`, `status`, `alert`, the summary columns `root_cause_service` and
+  `failure_type` (for listing), timestamps, and `record` as JSONB. The record holds the timeline, every agent output,
+  every review with its grounding check, the proposal, the decision, the action result, the verification and the
+  per-step tokens, latency and errors.
+- Statuses: `investigating` → `awaiting_approval` → `approved`/`rejected` → `fix_applied` → `resolved`. Other
+  endings: `no_incident`, `needs_human`, `failed`.
+- The approval is a compare-and-set (`UPDATE ... WHERE status = 'awaiting_approval' RETURNING`). Two simultaneous
+  approvals: exactly one wins (threaded test against real Postgres).
+- The record is saved after every step, so a crash mid-investigation still leaves what was done.
+
+### D-506 Reviewer = an LLM for reasoning + code for facts
+- `copilot/agents/review.py` compares the diagnosis with the **full** tool results of the investigation (triage plus
+  every diagnosis round).
+- **Hard checks:**
+  - internal consistency (incident vs. `none`);
+  - every cited 32-hex trace ID must appear in a tool result;
+  - the root-cause service must appear in a tool result.
+- **Soft checks:** evidence count, confidence vs. kinds of evidence, and the share of evidence items "anchored" by a
+  trace ID, a decimal or 3+-digit number, or quoted text found in the results. The anchored share is a rough
+  evidence-grounded rate for Week 5; it shows that a cited value occurs, not that it supports the claim.
+- A hard failure forces `revise` whatever the Reviewer LLM says. Its issues and questions go back to the diagnosis
+  agent in the next round.
+- After 2 rounds without approval the incident is `needs_human`, and the action agent is never called.
+
+### D-507 Act only on approved diagnoses of real incidents
+- Action runs only if the review approved **and** `incident=true`.
+- An approved `incident=false` ends as `no_incident`.
+- If the action agent escalates or proposes nothing, the incident ends as `needs_human`.
+- The action agent receives the diagnosis, the knowledge agent's remediation hints and the list of services it may
+  act on.
+
+### D-508 Postmortem drafts are generated from data and never ingested automatically
+- `copilot/postmortem.py` builds the draft from the record (timeline, root cause, evidence, review, proposal,
+  decision, result, verification). There is no LLM in this step, so every line traces back to data. Impact,
+  severity and lessons are marked TODO for a human.
+- Drafts go to `runs/postmortems/` (git-ignored) and are valid knowledge documents (tested with `parse_document`),
+  but they are **not** added to `kb/` automatically:
+  - postmortems are reviewed documents;
+  - automatic ingestion would let evaluation runs feed their own answers into the knowledge base. Five payment runs
+    would create five payment postmortems.
+
+### D-509 Tracing the copilot, in its own Jaeger
+- ADK already creates spans for agent runs, LLM calls and tool calls (model, tokens, tool names). The coordinator
+  adds an `incident` span, one `step <agent>` span per step and a `decision` span, so one incident is one trace.
+- `setup_tracing()` exports via OTLP/HTTP only when `COPILOT_OTLP_ENDPOINT` is set, to `copilot-jaeger` (new in
+  `docker-compose.yml`: UI on 16687, OTLP on 4328, the same Jaeger image as the demo).
+- **Never the demo's collector:** its span-metrics pipeline would turn the copilot's own traffic into a service
+  "incident-copilot" in Prometheus. `get_service_health` would then show the copilot's LLM latency to its own
+  agents. `setup_tracing` refuses the collector ports 4317/4318.
+
+### D-510 Recovery check only where it can be honest
+- `decide(..., verify_minutes=N)` polls `get_service_health` until the root-cause and affected services are below
+  5 % errors in two polls in a row. Only then is the incident `resolved`.
+- Only `errors`/`unavailable` faults are verified this way. For latency, resource or queue faults the error ratio
+  stays near 0 % while the problem continues, so a check would report success falsely. The result says a human must
+  check instead.
+
+### D-511 Tests: written first, then run (2026-11-28)
+- New tests:
+  - `test_actions.py`: approval lock, rollback, restart, audit, no leaks;
+  - `test_review.py`;
+  - `test_team.py`: tools per agent, guard, `run_step`, ADK pause and resume with approve/reject;
+  - `test_coordinator.py`: full incidents with one scripted model per agent, the review loop, forced revision,
+    every ending, exactly-once decisions, resume by a new coordinator, verification;
+  - `test_state_db.py` (`db`): records, the approval race, resume through a fresh Postgres session service;
+  - security additions: the tools never import actions, no prompt mentions the mechanism.
+- Test safety (conftest): the settings path points at a missing file, action logs and drafts go to `tmp_path`, and
+  the docker call is blocked unless a test replaces it. A test can never touch the real demo.
+- **Result:** 675 tests (639 unit, 23 db, 13 live) all passed on the first run. The unit and db suites were re-run
+  after every change below and kept passing. The final count is 678 (642 unit, 23 db, 13 live), all passing. The
+  live runs are in D-516.
+
+### D-512 ADK 2.15 behaviour confirmed in the source (not assumed)
+- For a single paused call, the confirmation request event is emitted *before* the tool's placeholder result
+  (`core/_function_call_postprocessor.py`). The runtime recognises the placeholder by the event's
+  `requested_tool_confirmations`, not by order.
+- An agent with an `output_schema` validates its final text itself and raises on non-JSON
+  (`LlmAgent.__maybe_save_output_to_state`). `run_step` records that as the step's error.
+- A paused call does not re-invoke the model (`skip_summarization`), and the invocation pauses on the
+  `adk_request_confirmation` call.
+- `tool_context` is injected by name and is not in the schema the model sees (tested).
+
+
+### D-513 The Gemini free tier: 5 requests a minute, 20 a day, per model
+- **Observed on the first live run:** `gemini-2.5-flash` on the free tier allows 5 generate requests per minute
+  (`GenerateRequestsPerMinutePerProjectPerModel-FreeTier`, 5). The team hit HTTP 429 in the diagnosis step after
+  30 s, and the incident correctly ended as `failed`.
+- **Second run:** 20 requests per **day** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, 20, retry in
+  42,810 s). Two investigations used up the whole day.
+- **Fix 1, pacing and retries** (`copilot/agents/llm.py`):
+  - a process-wide pacer (`COPILOT_LLM_RPM=5`, an ADK `before_model_callback` on every team agent) waits *before*
+    a request instead of failing after it;
+  - ADK's `Gemini` model is built with `retry_options` (429/5xx, 10-60 s back-off) for what pacing does not prevent;
+  - pacing time is recorded per step (`rate_limit_wait_seconds`) and as a span attribute, so waiting is not
+    mistaken for slowness.
+- ADK logs every model error with a full traceback (4 per failed step). `scripts/incident.py` hides them unless
+  `--debug` is given; the record keeps the error.
+- **Model choice:** quotas are per model. `gemini-2.5-flash-lite` is no longer available to new users (HTTP 404);
+  `gemini-3.5-flash` and `gemini-3.5-flash-lite` are, each with its own quota. On this key `gemini-3.5-flash` is
+  **served by `gemini-3.6-flash`**: the 429 names 3.6-flash, so the two share one daily quota of 20. The default stays
+  `COPILOT_MODEL=gemini-2.5-flash`. The runs after the daily limit used `gemini-3.5-flash` and
+  `gemini-3.5-flash-lite` (set per command, not in `.env`).
+
+### D-514 Fewer model calls per incident (prompt and structure version 2)
+Within a 20-requests-a-day quota, model calls are the cost that matters. Run 2 spent 12 calls before reaching the
+action step. The transcript showed where:
+
+| Waste seen in run 2 | Change | Effect in run 3 |
+|---|---|---|
+| Knowledge: one turn to call two searches, one turn for the JSON, one malformed call (`SetModelResponseRunbooks`, a tool that does not exist) | Retrieval moved into code (the triage query, 3 runbooks + 2 postmortems); the agent has no tools and answers in one call | 3 calls, 197 s -> **1 call, 11 s** |
+| Diagnosis repeated triage's `get_service_health` and `get_traces(checkout)` | Prompt: start from the suspects, do not repeat triage's calls, batch independent calls in one turn; budget 15 -> 10 | 5 calls, 66k tokens -> **2 calls, 26k tokens** |
+| Triage used one turn per tool | Prompt: health and the named service's traces in the same turn; budget 6 -> 4 | health + traces + logs in 2 turns |
+| After an approved action ADK asks the model to summarise the tool result | `after_tool_callback` sets `skip_summarization`: the tool result is the answer | approval costs **0 calls** |
+
+Result: the whole incident took **8 model calls**, 61k tokens and 81 s, against 12 calls, 99k tokens and 359 s
+for the part of run 2 that completed. The model also differs between the runs (D-513): the call count comes from
+the structure and budgets, while tokens and quality also depend on the model.
+
+### D-515 Evidence must match confidence, and revisions must keep evidence (prompt version 3)
+- **Observed (run 4, `gemini-3.5-flash-lite`):** the diagnosis was correct (payment, errors), but the reviewer
+  rejected it twice and the incident ended as `needs_human`.
+  - Round 1: confidence high with only metric and log evidence.
+  - Round 2: asked for traces, the diagnosis *replaced* its log evidence with trace evidence, so it still had only
+    two kinds.
+
+  The reviewer was right by the rules (high = metric, trace and log). The safety rule held: no action without an
+  approved review.
+- **Fix:**
+  - `diagnosis_team.md` v3 states the rule (high = one metric, one trace and one log item; medium = two kinds; else
+    lower the confidence) and says to keep earlier evidence when revising;
+  - `reviewer.md` v2: when the only problem is the confidence label, offer both fixes (add the missing kind or lower
+    the confidence) instead of a new investigation.
+- **Result (run 5, same model, same fault):** approved in round 1. 8 calls instead of 11, 57k tokens instead of 75k.
+
+### D-516 Live results, 2026-11-28 (paymentFailure 50 %, unless noted)
+| Run | Version / model | Outcome | Model calls | Tokens | Agent time |
+|---|---|---|---|---|---|
+| 1 | v1, 2.5-flash | failed: 429 per minute in diagnosis (after 30 s) | not counted yet | 36k | 31 s |
+| 2 | v1 + pacing, 2.5-flash | correct diagnosis (payment, errors, high), review approved; failed: 429 per **day** at action | 12 | 99k | 359 s |
+| 3 | v2, 3.5-flash | correct; approved in round 1; `rollback_config(payment)` approved by a human; **resolved** (verified 2 min later) | 8 | 61k | 81 s |
+| 4 | v2, 3.5-flash-lite | correct diagnosis; review not approved in 2 rounds -> `needs_human`, no action (D-515) | 11 | 75k | 123 s |
+| 5 | v3, 3.5-flash-lite | correct; approved in round 1; proposal **rejected** by a human; nothing changed | 8 | 57k | 66 s |
+| 6 | v3, 3.5-flash (= 3.6-flash) | **false alarm** (healthy system, alert on fraud-detection 25 %): `no_incident`, high confidence, review approved, no action | 13 | 117k | 182 s |
+| 7, 8 | v3 + fix (D-517), 3.5 / 3.6-flash | daily quota used up; run 8 stopped after one step | 0 | 0 | 222 s / 75 s |
+| 9 | v3 + fix (D-517), 3.7-flash | **same false alarm**: `no_incident`, high confidence, review approved | **9** | **60k** | 718 s* |
+
+- **Every completed diagnosis named the root cause correctly:** payment, failure type errors, with checkout and
+  frontend as symptoms. The agents also found *which* charges fail: those of gold-loyalty users, with
+  "Invalid token" in the payment logs.
+- **Run 3:** alert to diagnosis 71 s, reviewed proposal at 83 s, recovery confirmed 2 minutes after the approval.
+- **Grounding:** every approved diagnosis had all its evidence items anchored in real tool results, and every
+  cited trace ID existed.
+- **The knowledge agent filtered the retrieval:** of 3 runbooks and 2 postmortems retrieved, it kept the payment and
+  checkout runbooks and the payment postmortem, and described how the past incident differs.
+- **Nothing changed before a human approved:** in every paused run the settings file still read 50 %. After the
+  approval in run 3 it was byte-identical to the upstream file again.
+- **The approval was resumed by a separate command:** a new process with a new Postgres session service, with no
+  model call.
+- **Tracing:** each incident is one trace in copilot-jaeger (27-40 spans), and the demo's Jaeger has no
+  `incident-copilot` service.
+- **False alarms are handled, and the knowledge base helps:** for the fraud-detection false alarm, retrieval put the
+  known-noise runbook and the false-alarm postmortem first. Both runs concluded "no incident" with the right reason:
+  a low-traffic error ratio (about 0.07 requests a second).
+- \* Run 9's wall time came from the model: one knowledge call took 262 s, with no time in the pacer. Calls and
+  tokens are the comparable numbers.
+- **Limits:** two scenarios (one fault type and one false alarm), nine runs, several models (forced by the quotas)
+  and self-written alerts. It is a smoke test of the system, not an accuracy measurement; that is the Week-5
+  evaluation.
+
+### D-517 Proving a negative cheaply, and stopping at a used-up daily quota
+- **Observed (run 6):** a false alarm cost the most of any run: 13 model calls, 16 tool calls, 117k tokens.
+  - Triage asked for 6 tools (its budget of 4 refused 2).
+  - Diagnosis used all 10 of its calls, checking payment, checkout and 30-minute windows to show that nothing was
+    wrong.
+- **Fix:**
+  - `triage.md` v3: when the overview shows only noise, check just the alerted service, then answer
+    `incident_likely: false`;
+  - `diagnosis_team.md` v4: proving that nothing is wrong needs one check per signal for the alerted service;
+  - the coordinator now tells the diagnosis agent when triage saw no sign of an incident and asks for a quick
+    check.
+
+  The guard budget stays the hard cap.
+- **Result (run 9, same alert):** still `no_incident` with the right reason. **9 calls instead of 13, 11 tools
+  instead of 16, 60k tokens instead of 117k (-49 %).** The model differs (3.7-flash).
+- **Observed (run 7):** after a *daily* 429 the coordinator kept going. Each step sat through the client's retries
+  and failed, 222 s for nothing.
+- **Fix:** a step error naming a `PerDay` quota raises `DailyQuotaExhausted`. The investigation stops at once with a
+  clear message ("set COPILOT_MODEL to another model, or wait"). Run 8 stopped after one step (75 s), and a unit
+  test checks that no later agent is called.
+

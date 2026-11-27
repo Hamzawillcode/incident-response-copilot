@@ -14,22 +14,41 @@ them **without being able to read the flag state**.
 | 1 | Prometheus metrics tool (`query_metrics`) | ✅ done | [phase-1-prometheus-metrics-tool.pdf](docs/phase-1-prometheus-metrics-tool.pdf) |
 | 1b | Observability tool layer: `search_logs`, `get_traces`, shared sanitization | ✅ done | [phase-1-observability-tools.pdf](docs/phase-1-observability-tools.pdf) |
 | 2 | Single ADK diagnosis agent, health tools, threshold detector | ✅ built · Gemini runs pending | [phase-2-diagnosis-agent.pdf](docs/phase-2-diagnosis-agent.pdf) |
-| 3 | Knowledge base: 14 runbooks + 5 postmortems in pgvector, hybrid search tools (RAG) | ✅ built · keyword search measured · Gemini embeddings pending | [phase-3-knowledge-base-rag.pdf](docs/phase-3-knowledge-base-rag.pdf) |
+| 3 | Knowledge base: 14 runbooks + 5 postmortems in pgvector, hybrid search tools (RAG) | ✅ built · retrieval measured · agent runs pending | [phase-3-knowledge-base-rag.pdf](docs/phase-3-knowledge-base-rag.pdf) |
+| 4 | Agent team (triage, knowledge, diagnosis, reviewer, action), human approval, Postgres state, tracing | ✅ built · 678 tests pass · 9 live runs (fix approved & resolved, rejected, false alarm) | [phase-4-agent-team.pdf](docs/phase-4-agent-team.pdf) |
 
-One Google ADK agent (Gemini) investigates an alert with the read-only tools and returns a structured diagnosis.
-A detector watches error ratios and starts it automatically. With `--knowledge`, the agent can also search the
-team's runbooks and past incidents (RAG over Postgres + pgvector). Design decisions are recorded in
-[DECISIONS.md](DECISIONS.md).
+A team of five Google ADK agents (Gemini) investigates an alert: **triage** takes a first look, **knowledge**
+searches runbooks and past incidents (RAG over Postgres + pgvector), **diagnosis** finds the root cause with
+evidence, a **reviewer** checks that evidence against the real tool results, and **action** proposes one fix. The
+fix only runs after a human approves it. A detector watches error ratios and starts the team automatically. Design
+decisions are recorded in [DECISIONS.md](DECISIONS.md).
+
+```
+alert -> triage -> knowledge -> diagnosis <-> reviewer (max 2 rounds) -> action -> HUMAN approves -> fix -> verify
+                                                                               \-> nothing changes until then
+```
 
 ## Layout
 
 ```
 copilot/agents/
-  diagnosis.py    build_diagnosis_agent(knowledge=False), diagnose(alert) -> DiagnosisRun, Diagnosis schema
+  coordinator.py  IncidentCoordinator: investigate(alert), decide(id, approve) -- the fixed procedure, in code
+  team.py         the five agents and their output schemas (TriageReport, KnowledgeReport, Review)
+  runtime.py      run_step(): one agent step -> transcript, tokens, parsed output, paused approval; tool_guard
+  review.py       grounding check: cited trace IDs / services must exist in real tool results
+  verify.py       after a fix: error ratios back below 5 %?
+  diagnosis.py    build_diagnosis_agent(knowledge=False, team=False), diagnose(alert), Diagnosis schema
   console.py      transcript printing, runs/ saving
+copilot/actions/          the ONLY code that changes anything (Action agent only, human approval required)
+  remediation.py  rollback_config, restart_service, escalate_to_human; audit log, backups, dry run
+copilot/state.py          incident records (Postgres table incidents) + ADK sessions (Postgres schema adk)
+copilot/postmortem.py     draft postmortem from an incident record (runs/postmortems/, not ingested)
+copilot/telemetry.py      OpenTelemetry tracing of the copilot itself (to copilot-jaeger)
 copilot/prompts/
   diagnosis.md              the agent's instructions (versioned like code)
   diagnosis_knowledge.md    extra section when the knowledge tools are attached
+  diagnosis_team.md         extra section in the team: triage report, knowledge, reviewer feedback
+  triage.md, knowledge.md, reviewer.md, action.md
 copilot/kb/                 knowledge base (Week 3)
   documents.py    read kb/*.md, validate, one chunk per "##" section (refuses fault-injection terms)
   embeddings.py   Gemini embeddings: RETRIEVAL_DOCUMENT / RETRIEVAL_QUERY, 768 dims, retries, query cache
@@ -63,8 +82,9 @@ scripts/
   record_tool_fixtures.py         re-record OpenSearch/Jaeger/Prometheus fixtures (normal | fault)
   record_prometheus_fixtures.py   re-record the original Prometheus fixtures
   check_retrieval.py              hit@1 / hit@3 / MRR on eval/retrieval_queries.yaml
+  incident.py                     run | approve | reject | list | show  (the agent team)
 eval/retrieval_queries.yaml       28 test queries with their expected documents
-docker-compose.yml                kb-postgres: Postgres 17 + pgvector on 127.0.0.1:5433
+docker-compose.yml                kb-postgres (Postgres 17 + pgvector, 127.0.0.1:5433), copilot-jaeger (UI 16687)
 deploy/compose.copilot.yaml       overlay: OpenSearch and Jaeger on fixed loopback-only ports
 docs/                             phase PDFs, their HTML sources, screenshots and example outputs
 opentelemetry-demo/               upstream demo (tag 3.1.0) with two local changes (see DECISIONS.md)
@@ -83,18 +103,26 @@ python3 -m venv .venv
 # 3. Knowledge base (Week 3): Postgres + pgvector, then load kb/ into it
 docker compose up -d kb-postgres
 .venv/bin/python -m copilot.kb.ingest                  # without GOOGLE_API_KEY: text only, keyword search
-.venv/bin/python scripts/check_retrieval.py            # hit@1 / hit@3 / MRR on 28 test queries
+.venv/bin/python scripts/check_retrieval.py            # hit@1 / hit@3 / MRR on 28 test queries (--mode keyword|vector|hybrid)
 
 # 4. Tests: unit tests are hermetic (no network, no database, no Gemini); db and live tests skip if their backend is down
-.venv/bin/python -m pytest            # everything (578 tests: 545 unit, 20 db, 13 live)
-.venv/bin/python -m pytest -m db      # only the 20 knowledge-base database tests
-.venv/bin/python -m pytest -m live    # only the 13 live integration tests
+.venv/bin/python -m pytest            # everything
+.venv/bin/python -m pytest -m db      # only the database tests (knowledge base, incident state)
+.venv/bin/python -m pytest -m live    # only the live integration tests (demo running)
 
 # 5. The agent (needs a free Gemini key: cp .env.example .env, then fill GOOGLE_API_KEY)
 .venv/bin/python scripts/run_diagnosis.py                 # one investigation, every step printed
 .venv/bin/python scripts/run_diagnosis.py --runs 5        # run-to-run variation
 .venv/bin/python scripts/run_diagnosis.py --knowledge     # + runbook / postmortem search (RAG)
 .venv/bin/python -m copilot.kb.ingest                     # after adding the key: embeds all 116 sections once
+
+# 6. The agent team (Week 4): investigates, then STOPS until a human decides
+#    Free tier: set COPILOT_LLM_RPM=5 (5 requests/minute). The free tier also allows only 20 requests a day per
+#    model, and one incident takes about 8, so use a second model (COPILOT_MODEL=gemini-3.5-flash) when it runs out.
+docker compose up -d copilot-jaeger                       # optional: traces of the copilot (UI :16687)
+.venv/bin/python scripts/incident.py run                  # -> status awaiting_approval + the approve command
+.venv/bin/python scripts/incident.py approve <id> --verify-minutes 8    # or: reject <id> --note "why"
+.venv/bin/python scripts/incident.py list                 # incidents stored in Postgres
 .venv/bin/python -m detector.watcher --dry-run            # watch error ratios, print alerts only
 .venv/bin/python -m detector.watcher                      # alert -> agent investigates automatically
 ```
@@ -115,6 +143,11 @@ docker compose up -d kb-postgres
 | `KB_SCHEMA` | `public` | Postgres schema of the `kb_chunks` table (tests use a private one) |
 | `KB_EMBEDDING_MODEL` | `gemini-embedding-001` | 768-dim output; rows remember the model that embedded them |
 | `KB_EMBEDDING_TIMEOUT_SECONDS` / `KB_STATEMENT_TIMEOUT_MS` | `10` / `5000` | query embedding, SQL statements |
+| `COPILOT_LLM_RPM` | `0` (off) | pace the team to N model requests a minute; `5` for the Gemini free tier |
+| `COPILOT_SESSIONS` | `postgres` | ADK sessions in Postgres (schema `COPILOT_ADK_SCHEMA`, default `adk`) or `memory` |
+| `COPILOT_OTLP_ENDPOINT` | (none) | e.g. `http://localhost:4328/v1/traces` (copilot-jaeger); never the demo's collector |
+| `COPILOT_ACTIONS_DRY_RUN` | (off) | `1`: actions report what they would change, without changing it |
+| `FLAGD_CONFIG_PATH` | `opentelemetry-demo/src/flagd/demo.flagd.json` | the settings file `rollback_config` restores |
 
 ## The tools
 
@@ -158,9 +191,18 @@ Search the knowledge base in `kb/` (Week 3). The query is plain words describing
 
 Retrieval combines Postgres full-text search (exact words, title and headings weigh most) and pgvector cosine
 similarity on Gemini embeddings (paraphrases), fused with Reciprocal Rank Fusion. Without a key, or when the
-embedding API fails, it falls back to keyword search and says so. Measured keyword-only on 28 test queries:
-hit@3 = 1.00 for queries that share words with the right document and 0.75 for paraphrases; "checkout errors"
-returns the checkout runbook first. Hybrid retrieval has not been measured yet (it needs the Gemini key).
+embedding API fails, it falls back to keyword search and says so.
+
+Measured on 28 labelled test queries (`scripts/check_retrieval.py`, 2026-11-27, details in DECISIONS.md D-411):
+
+| Mode | hit@3 (all 28) | Paraphrases (8): hit@1 / hit@3 |
+|---|---|---|
+| keyword only | 0.93 | 0.50 / 0.75 |
+| vector only | 1.00 | 0.88 / 1.00 |
+| hybrid (default) | 1.00 | 0.75 / 1.00 |
+
+"checkout errors" returns the checkout runbook first in every mode (the Week-3 target was top 3). The queries were
+written by the author of the documents, so treat this as a regression check, not a benchmark.
 
 ## Security model
 
@@ -183,6 +225,10 @@ returns the checkout runbook first. Hybrid retrieval has not been measured yet (
 5. **Knowledge base:** documents that mention fault injection are refused at ingestion (and a test scans every
    file); searches use a read-only Postgres session with a statement timeout; only `copilot/kb/ingest.py` contains
    write SQL; all values are query parameters.
+6. **Actions (Week 4):** only the Action agent has write tools, and only in `copilot/actions/` (the read-only tools
+   never import it). Every write call needs a human: ADK tool confirmation pauses the run, and the tool itself
+   refuses to run without a confirmed approval. One action per incident, approvals apply exactly once, every call is
+   audited, restarts are limited to the shop's own services, and results never name the fault-injection settings.
 
 ## Network note (college proxy)
 

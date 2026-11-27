@@ -71,6 +71,8 @@ CONFIG_VARS = (
     "KB_DATABASE_URL", "KB_SCHEMA", "KB_EMBEDDING_MODEL", "KB_EMBEDDING_TIMEOUT_SECONDS",
     "KB_CONNECT_TIMEOUT_SECONDS", "KB_STATEMENT_TIMEOUT_MS",
     "GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENAI_USE_VERTEXAI",
+    "FLAGD_CONFIG_PATH", "COPILOT_ACTIONS_DIR", "COPILOT_ACTIONS_DRY_RUN", "COPILOT_SESSIONS",
+    "COPILOT_ADK_SCHEMA", "COPILOT_POSTMORTEM_DIR", "COPILOT_OTLP_ENDPOINT",
 )
 # Read before any test clears it: db tests use the developer's knowledge-base URL, if set.
 _KB_DATABASE_URL = os.environ.get("KB_DATABASE_URL")
@@ -80,12 +82,24 @@ def _blocked_db(*args, **kwargs):
     raise AssertionError("unexpected knowledge-base database connection in a unit test")
 
 
+def _blocked_subprocess(*args, **kwargs):
+    raise AssertionError(f"unexpected subprocess call in a test: {args[:1]}")
+
+
 @pytest.fixture(autouse=True)
-def _no_network(request, monkeypatch):
+def _no_network(request, monkeypatch, tmp_path):
+    # Remediation can never touch the real demo or the real runs/ folder from a test (Week 4):
+    # the settings file points nowhere, action logs and postmortem drafts go to tmp_path,
+    # and `docker restart` is blocked unless a test replaces subprocess.run itself.
+    from copilot.actions import remediation
+    monkeypatch.setattr(remediation, "run_command", _blocked_subprocess)
     if request.node.get_closest_marker("live"):
         return
     for var in CONFIG_VARS:  # unit tests must not depend on the developer's environment
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("FLAGD_CONFIG_PATH", str(tmp_path / "no-settings-file.json"))
+    monkeypatch.setenv("COPILOT_ACTIONS_DIR", str(tmp_path / "actions"))
+    monkeypatch.setenv("COPILOT_POSTMORTEM_DIR", str(tmp_path / "postmortems"))
     # No test may call the Gemini embedding API; tests that need vectors inject a fake embedder.
     monkeypatch.setattr(kb_embeddings, "make_embedder", lambda: None)
     if not request.node.get_closest_marker("db"):
@@ -168,7 +182,9 @@ def kb_db(request, monkeypatch):
         admin.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public")
         admin.execute(f"CREATE SCHEMA {schema}")
         monkeypatch.setenv("KB_SCHEMA", schema)
+        monkeypatch.setenv("COPILOT_ADK_SCHEMA", f"{schema}_adk")   # ADK session tables (Week 4)
         try:
             yield schema
         finally:
             admin.execute(f"DROP SCHEMA {schema} CASCADE")
+            admin.execute(f"DROP SCHEMA IF EXISTS {schema}_adk CASCADE")

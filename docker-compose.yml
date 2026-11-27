@@ -1,7 +1,8 @@
 # Copilot-side services (separate from the OpenTelemetry Demo stack).
 #
-#   docker compose up -d kb-postgres        # start the knowledge base
-#   docker compose down                     # stop (data is kept in the named volume)
+#   docker compose up -d kb-postgres        # knowledge base, incident records, ADK sessions
+#   docker compose up -d copilot-jaeger     # traces of the copilot itself (optional)
+#   docker compose down                     # stop (Postgres data is kept in the named volume)
 #
 # kb-postgres: Postgres 17 with the pgvector extension. It holds the runbook and
 # postmortem chunks (table kb_chunks) and, from Week 4, sessions and incidents.
@@ -25,6 +26,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  # copilot-jaeger: traces of the copilot ITSELF (incident -> agent steps -> LLM and tool calls).
+  # Separate from the demo's Jaeger on purpose: spans sent into the demo's collector would turn the
+  # copilot's own traffic into "service metrics" that its agents then read (DECISIONS.md D-509).
+  # UI: http://localhost:16687   OTLP/HTTP: COPILOT_OTLP_ENDPOINT=http://localhost:4328/v1/traces
+  # Same image as the demo's Jaeger, so nothing new to download. Storage is in memory.
+  copilot-jaeger:
+    image: quay.io/jaegertracing/jaeger:2.19.0
+    container_name: copilot-jaeger
+    ports:
+      - "127.0.0.1:16687:16686"
+      - "127.0.0.1:4328:4318"
     restart: unless-stopped
 
 volumes:

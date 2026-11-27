@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 4 — Agent Team</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; --purple:#6d3fd6; --purple-soft:#f1ebff; --teal:#0f7b75; --teal-soft:#e4f5f3; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.1pt; line-height:1.47; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.4pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  pre.term { background:#141a26; color:#dfe6f3; border-color:#141a26; font-size:7.6pt; }
+  pre.term .a { color:#8fb4ff; } pre.term .o { color:#7fd6a4; } pre.term .x { color:#ffcf70; } pre.term .r { color:#ff9b8f; } pre.term .m { color:#8a93a6; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:8.9pt; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figure img { width:100%; border:1px solid var(--line); border-radius:4px; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:155mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .ok { color:var(--ok); font-weight:700; }
+  .bad { color:var(--bad); font-weight:700; }
+  .pending { color:var(--warn); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .qa dt { font-weight:700; margin-top:8pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10pt; }
+  .card { border:1px solid var(--line); border-radius:6px; padding:6pt 9pt; break-inside:avoid; }
+  .card h4 { margin:0 0 3pt; font-size:10pt; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 4 (Week 4)</div>
+  <h1>An incident team that asks before it acts</h1>
+  <div class="sub">Five specialist Gemini agents (triage, knowledge, diagnosis, reviewer, action) run by a coordinator in code. The fix only runs after a human approves it. Incident state and agent sessions live in Postgres, and the copilot traces itself. Tested live against a real injected fault.</div>
+  <table>
+    <tr><td>Date</td><td>28 November 2026</td></tr>
+    <tr><td>Stack</td><td>Google ADK 2.15 · Gemini (2.5-flash, 3.5-flash, 3.5-flash-lite) · Postgres 17 + SQLAlchemy async (psycopg 3) · OpenTelemetry → Jaeger 2.19 · Python 3.14</td></tr>
+    <tr><td>New code</td><td><code>copilot/agents/{team,coordinator,runtime,review,verify,llm}.py</code>, <code>copilot/actions/</code>, <code>copilot/state.py</code>, <code>copilot/postmortem.py</code>, <code>copilot/telemetry.py</code>, <code>scripts/incident.py</code>, 4 new prompts</td></tr>
+    <tr><td>Tests</td><td><span class="ok">678 passed</span> (642 unit, 23 against the real Postgres, 13 live against the running demo)</td></tr>
+    <tr><td>Live</td><td>9 runs on the real demo. Every completed diagnosis of the payment fault was right. One fix approved and <b>verified resolved</b>, one rejected, a false alarm correctly called "no incident" (twice).</td></tr>
+    <tr><td>Improved</td><td>Model calls per incident 12+ (failing) → <b>8</b>, tokens −38 %, 359 s → 81 s. Reviewer loop fixed. False alarm 13 → 9 calls, tokens −49 %. Fail fast on a used-up daily quota.</td></tr>
+  </table>
+</section>
+
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>The idea in one minute</li>
+  <li>What we built</li>
+  <li>The team, and why the coordinator is code</li>
+  <li>Architecture</li>
+  <li>One real incident, start to finish</li>
+  <li>Human approval: how the pause works</li>
+  <li>The reviewer and the grounding check</li>
+  <li>State in Postgres</li>
+  <li>Tracing the copilot itself</li>
+  <li>What we observed (all live runs)</li>
+  <li>What we did to improve performance</li>
+  <li>Bugs and surprises</li>
+  <li>Testing</li>
+  <li>Status, how to run it, limitations</li>
+  <li>Interview questions and answers</li>
+</ol>
+
+<h2>1. The idea in one minute</h2>
+<p>Until Week 3 one agent did everything. A real incident team splits the work: someone takes a first look, someone checks the runbooks, someone digs for the cause, a colleague double-checks the reasoning, and only then does anyone touch production, after the on-call lead says yes.</p>
+<p>Week 4 builds exactly that team out of Gemini agents:</p>
+<ul>
+  <li><b>Triage</b> finds what is broken. <b>Knowledge</b> brings the runbooks and past incidents. <b>Diagnosis</b> proves the root cause. The <b>Reviewer</b> checks the evidence. <b>Action</b> proposes one fix.</li>
+  <li>The fix waits for a <b>human approval</b>. The run pauses, the incident is stored in Postgres, and anyone can approve or reject it later, even from another terminal.</li>
+  <li>After approval the fix runs, the copilot checks that the errors went away, and it drafts the postmortem.</li>
+</ul>
+<div class="callout"><b>Analogy</b>An operating theatre: the nurse takes the vitals (triage), the junior doctor pulls the patient's file (knowledge), the surgeon makes the diagnosis, a second surgeon reviews the scans (reviewer), and nobody cuts until the patient signs the consent form (human approval).</div>
+
+<h2>2. What we built</h2>
+<table>
+  <tr><th style="width:36%">File</th><th>What it does</th></tr>
+  <tr><td><code>copilot/agents/team.py</code></td><td>The five agents, their tools and budgets, and their output schemas (<code>TriageReport</code>, <code>KnowledgeReport</code>, <code>Review</code>).</td></tr>
+  <tr><td><code>copilot/agents/coordinator.py</code></td><td>The procedure: <code>investigate(alert)</code> up to the human decision, and <code>decide(id, approve)</code> afterwards.</td></tr>
+  <tr><td><code>copilot/agents/runtime.py</code></td><td><code>run_step()</code>: runs one agent and returns its transcript, model calls, tokens, parsed output and any paused approval. Also the tool guard.</td></tr>
+  <tr><td><code>copilot/agents/review.py</code></td><td>The grounding check: every cited trace ID and service must exist in a real tool result.</td></tr>
+  <tr><td><code>copilot/agents/llm.py</code></td><td>Gemini with automatic retries, and a pacer that keeps the team under the free tier's request limit.</td></tr>
+  <tr><td><code>copilot/agents/verify.py</code></td><td>After a fix: are the error ratios back below 5 %?</td></tr>
+  <tr><td><code>copilot/actions/remediation.py</code></td><td>The <b>only</b> code that changes anything: <code>rollback_config</code>, <code>restart_service</code>, <code>escalate_to_human</code>. Also the audit log and backups.</td></tr>
+  <tr><td><code>copilot/state.py</code></td><td>Incident records (table <code>incidents</code>) and ADK sessions (schema <code>adk</code>), both in Postgres.</td></tr>
+  <tr><td><code>copilot/postmortem.py</code>, <code>copilot/telemetry.py</code></td><td>The postmortem draft, built from data rather than an LLM. Tracing to the copilot's own Jaeger.</td></tr>
+  <tr><td><code>scripts/incident.py</code></td><td><code>run</code> · <code>approve</code> · <code>reject</code> · <code>list</code> · <code>show</code>. The detector now starts the team.</td></tr>
+  <tr><td>prompts: <code>triage.md</code>, <code>knowledge.md</code>, <code>reviewer.md</code>, <code>action.md</code>, <code>diagnosis_team.md</code></td><td>One job description per agent, versioned. Each changed during testing (section 11).</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>3. The team, and why the coordinator is code</h2>
+<table>
+  <tr><th>Agent</th><th>Job</th><th>Tools (budget)</th><th>Output</th></tr>
+  <tr><td><b>Triage</b></td><td>What is broken, how badly, where to start?</td><td>the 5 telemetry tools (4)</td><td>symptoms, suspects, search query</td></tr>
+  <tr><td><b>Knowledge</b></td><td>Have we seen this before?</td><td>none: retrieval runs in code, the agent reads the results</td><td>relevant runbook steps, similar incidents, fix hints</td></tr>
+  <tr><td><b>Diagnosis</b></td><td>Why is it broken? (ReAct)</td><td>all 7 read-only tools (10)</td><td>root cause, confidence, evidence</td></tr>
+  <tr><td><b>Reviewer</b></td><td>Is the evidence solid?</td><td>none</td><td>approve / revise + questions</td></tr>
+  <tr><td><b>Action</b></td><td>What should we do?</td><td>rollback · restart (<b>human approval</b>) · escalate (1)</td><td>one proposed call</td></tr>
+</table>
+<p>The <b>coordinator</b> runs them in a fixed order: triage → knowledge → diagnosis ⇄ reviewer (at most 2 rounds) → action → <b>stop for a human</b>.</p>
+<div class="callout"><b>Why not let an LLM coordinate?</b>ADK can make a coordinator agent that decides which sub-agent to call next. That is flexible, but an LLM could skip the reviewer or act before the review. Incident response has a known procedure, and the guarantees matter more: review always happens before action, the run always stops at the same place for a human, every step has a budget, a failed step leaves a record, and every evaluation run has the same structure. The LLMs decide <i>inside</i> the steps, where judgement is needed.</div>
+<p>Each agent receives the earlier agents' outputs as JSON sections in its message ("## Triage report", "## Knowledge", "## Reviewer feedback"), and each step runs in its own ADK session. No agent sees another agent's raw conversation.</p>
+
+<h2>4. Architecture</h2>
+<figure>
+<svg viewBox="0 0 700 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6475"/></marker></defs>
+  <rect x="10" y="20" width="95" height="50" rx="7" fill="#fff4e5" stroke="#a25a00"/>
+  <text x="57" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#a25a00">Alert</text>
+  <text x="57" y="58" text-anchor="middle" font-size="9">detector / CLI</text>
+  <rect x="125" y="10" width="440" height="160" rx="9" fill="#f7f9fc" stroke="#c9d1de"/>
+  <text x="345" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#5b6475">Coordinator (code): fixed procedure, budgets, records every step</text>
+  <rect x="140" y="40" width="75" height="44" rx="6" fill="#eaf0ff" stroke="#2f5bd3"/><text x="177" y="60" text-anchor="middle" font-size="10" font-weight="700">Triage</text><text x="177" y="74" text-anchor="middle" font-size="8.5">5 read tools</text>
+  <rect x="228" y="40" width="80" height="44" rx="6" fill="#eaf0ff" stroke="#2f5bd3"/><text x="268" y="60" text-anchor="middle" font-size="10" font-weight="700">Knowledge</text><text x="268" y="74" text-anchor="middle" font-size="8.5">RAG results</text>
+  <rect x="321" y="40" width="80" height="44" rx="6" fill="#f1ebff" stroke="#6d3fd6"/><text x="361" y="60" text-anchor="middle" font-size="10" font-weight="700">Diagnosis</text><text x="361" y="74" text-anchor="middle" font-size="8.5">7 read tools</text>
+  <rect x="414" y="40" width="70" height="44" rx="6" fill="#e4f5f3" stroke="#0f7b75"/><text x="449" y="60" text-anchor="middle" font-size="10" font-weight="700">Reviewer</text><text x="449" y="74" text-anchor="middle" font-size="8.5">+ grounding</text>
+  <rect x="497" y="40" width="58" height="44" rx="6" fill="#fdecea" stroke="#b42318"/><text x="526" y="60" text-anchor="middle" font-size="10" font-weight="700">Action</text><text x="526" y="74" text-anchor="middle" font-size="8.5">1 proposal</text>
+  <line x1="215" y1="62" x2="226" y2="62" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="308" y1="62" x2="319" y2="62" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="401" y1="56" x2="412" y2="56" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="412" y1="70" x2="403" y2="70" stroke="#0f7b75" stroke-width="1.4" marker-end="url(#ar)"/>
+  <text x="407" y="96" text-anchor="middle" font-size="8.5" fill="#0f7b75">revise (max 2 rounds)</text>
+  <line x1="484" y1="62" x2="495" y2="62" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <rect x="140" y="110" width="200" height="48" rx="6" fill="#fff" stroke="#c9d1de"/><text x="240" y="130" text-anchor="middle" font-size="10" font-weight="700">Read-only tools</text><text x="240" y="146" text-anchor="middle" font-size="8.5">Prometheus · OpenSearch · Jaeger · pgvector</text>
+  <rect x="355" y="110" width="200" height="48" rx="6" fill="#fff" stroke="#b42318"/><text x="455" y="130" text-anchor="middle" font-size="10" font-weight="700" fill="#b42318">copilot/actions (write)</text><text x="455" y="146" text-anchor="middle" font-size="8.5">runs only after approval · audited</text>
+  <line x1="105" y1="45" x2="123" y2="45" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <rect x="590" y="20" width="100" height="70" rx="7" fill="#e8f6ee" stroke="#1f7a45"/>
+  <text x="640" y="44" text-anchor="middle" font-size="11" font-weight="700" fill="#1f7a45">Human</text>
+  <text x="640" y="60" text-anchor="middle" font-size="9">approve / reject</text>
+  <text x="640" y="74" text-anchor="middle" font-size="9">any terminal, later</text>
+  <line x1="565" y1="55" x2="588" y2="55" stroke="#5b6475" stroke-width="1.4" marker-end="url(#ar)"/>
+  <path d="M640,92 L640,134 L557,134" fill="none" stroke="#1f7a45" stroke-width="1.4" marker-end="url(#ar)"/>
+  <text x="646" y="118" font-size="8.5" fill="#1f7a45">approved</text>
+  <rect x="140" y="200" width="270" height="70" rx="8" fill="#e4f5f3" stroke="#0f7b75"/>
+  <text x="275" y="220" text-anchor="middle" font-size="11" font-weight="700" fill="#0f7b75">Postgres (kb-postgres)</text>
+  <text x="275" y="238" text-anchor="middle" font-size="9">incidents: status + full record (exactly-once approval)</text>
+  <text x="275" y="252" text-anchor="middle" font-size="9">schema adk: every agent session (pause / resume)</text>
+  <text x="275" y="266" text-anchor="middle" font-size="9">kb_chunks: runbooks + postmortems (Week 3)</text>
+  <rect x="440" y="200" width="250" height="70" rx="8" fill="#f1ebff" stroke="#6d3fd6"/>
+  <text x="565" y="220" text-anchor="middle" font-size="11" font-weight="700" fill="#6d3fd6">copilot-jaeger</text>
+  <text x="565" y="238" text-anchor="middle" font-size="9">incident → step → LLM call / tool call</text>
+  <text x="565" y="252" text-anchor="middle" font-size="9">separate from the demo's telemetry</text>
+  <line x1="275" y1="172" x2="275" y2="198" stroke="#0f7b75" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="480" y1="172" x2="520" y2="198" stroke="#6d3fd6" stroke-width="1.4" marker-end="url(#ar)"/>
+</svg>
+<figcaption>Figure 1. Week 4. The coordinator runs the agents in a fixed order. Only the Action agent can reach the write path, and only after a human approves. State goes to Postgres, and spans go to the copilot's own Jaeger.</figcaption>
+</figure>
+</section>
+
+<section class="page-break">
+<h2>5. One real incident, start to finish</h2>
+<p>Live demo, <code>paymentFailure</code> injected at 50 %, model <code>gemini-3.5-flash</code>, prompts version 2. Real console output, shortened:</p>
+<pre class="term"><span class="x">ALERT: users report failures at checkout in the last few minutes. Investigate and find the root cause.</span>
+<span class="a">[triage   ] ACT     get_service_health(minutes=15)</span>
+<span class="a">[triage   ] ACT     get_traces(minutes=15, limit=5, errors_only=True, service='checkout')</span>   <span class="m">&lt;- same turn</span>
+<span class="o">[triage   ] OBSERVE get_traces -> ok (12.0 KB)    error_origins: {"payment :: charge": 5}</span>
+<span class="a">[triage   ] ACT     search_logs(minutes=15, service='payment', level='warn')</span>
+<span class="o">[triage   ] OBSERVE search_logs -> ok (10.8 KB)   "Payment request failed. Invalid token. ...loyalty_level=gold x25"</span>
+[triage   ] RESULT  suspects: payment, checkout
+                    search query: checkout errors caused by payment charge failing with invalid token for gold loyalty level
+[knowledge] RESULT  runbook: kb/runbooks/payment.md, kb/runbooks/checkout.md
+                    past:    kb/postmortems/2026-03-14-payment-charges-rejected.md  root cause payment
+                    hint:    Roll back recent payment service deployments or configuration changes ...
+<span class="a">[diagnosis] ACT     get_service_metrics(service='payment')  get_traces(service='checkout')  search_logs(payment, warn)</span>
+<span class="o">[diagnosis] OBSERVE oteldemo.PaymentService/Charge: error ratio 66.7% ... error_origins {"payment :: charge": 10}</span>
+[diagnosis] RESULT  root cause: payment  (errors, confidence high)
+                    - [metric] payment operation oteldemo.PaymentService/Charge error ratio 66.7% now (max 100%)
+                    - [trace]  Trace 5ab0267047b569909710af9616cdc86b error origin payment :: charge ...
+                    - [log]    23 log records in payment matching 'Payment request failed. Invalid token. ...'
+[reviewer ] RESULT  verdict: approve   (grounding: 6/6 checks passed, evidence anchored 3/3)
+<span class="r">[action   ] APPROVAL NEEDED  rollback_config(service='payment', reason='The payment service is failing
+                  charge requests for gold loyalty level users with invalid token errors (66.7% error ratio) ...')</span>
+status: AWAITING_APPROVAL      effort: 8 LLM calls, 7 tool calls, 60,848 tokens, 81 s
+<span class="m">Nothing has been changed.</span></pre>
+<p>Then, in a separate command (a new process):</p>
+<pre class="term"><span class="a">$ scripts/incident.py approve inc-20261127-374fea --by hamza --verify-minutes 8</span>
+<span class="o">[action   ] OBSERVE rollback_config -> ok</span>
+status: <span class="o">RESOLVED</span>
+  result:     The configuration of payment was rolled back to its last known good version.
+  verified:   Error ratio below 5% for checkout, frontend, frontend-proxy, payment in 2 polls in a row.
+  postmortem: runs/postmortems/2026-11-27-inc-20261127-374fea.md  (draft)</pre>
+<table>
+  <tr><th>Time (UTC)</th><th>Event</th></tr>
+  <tr><td>20:10:58</td><td>alert</td></tr>
+  <tr><td>20:11:23</td><td>triage: suspects payment, checkout</td></tr>
+  <tr><td>20:11:35</td><td>knowledge: 2 runbooks, 1 past incident (of 3 + 2 retrieved)</td></tr>
+  <tr><td>20:12:09</td><td><b>diagnosis: payment (errors, high), 71 s after the alert</b></td></tr>
+  <tr><td>20:12:14</td><td>review: approve</td></tr>
+  <tr><td>20:12:21</td><td>proposal <code>rollback_config(service='payment')</code> waits for approval</td></tr>
+  <tr><td>20:12:47</td><td>approved by hamza. Rollback applied.</td></tr>
+  <tr><td>20:14:47</td><td><b>verified: errors below 5 % (resolved)</b>, postmortem draft written</td></tr>
+</table>
+<div class="callout ok"><b>What the agents found on their own</b>Not just "payment is broken": the logs and trace attributes showed that only charges for users with <code>loyalty_level=gold</code> fail, with "Invalid token". The knowledge agent kept only the payment and checkout runbooks and the payment postmortem, ignored the cart documents that were also retrieved, and explained how the past incident <i>differs</i> (card rejections then, invalid tokens now).</div>
+</section>
+
+<section class="page-break">
+<h2>6. Human approval: how the pause works</h2>
+<ol>
+  <li>The Action agent calls <code>rollback_config(service="payment", reason=...)</code>. The tool is registered with <code>FunctionTool(..., require_confirmation=True)</code>.</li>
+  <li>ADK does <b>not</b> run it. It emits an <code>adk_request_confirmation</code> event and pauses the run. The coordinator stores the paused call in the incident record and sets the status to <code>awaiting_approval</code>.</li>
+  <li><code>decide()</code>, in any process and at any time later, loads the record and sends ADK a message answering that confirmation: <code>{"confirmed": true, "payload": {"by": "hamza", ...}}</code>, in the same ADK session, which ADK reloads from Postgres.</li>
+  <li>ADK finds the paused call in the session, runs the tool, and the result goes into the record. No model call is needed.</li>
+</ol>
+<div class="two">
+  <div class="card"><h4>Lock 1: ADK tool confirmation</h4>Nothing runs until a confirmation response arrives. A rejection gives the tool result "This tool call is rejected." and nothing changes (tested live).</div>
+  <div class="card"><h4>Lock 2: the tool checks for itself</h4><code>rollback_config</code> refuses to run unless its context carries a <i>confirmed</i> approval, so calling it directly from code cannot skip the human either.</div>
+</div>
+<div class="callout warn"><b>A finding from reading ADK's source</b>ADK runs our tool guard (budget plus allow-list) <i>before</i> its confirmation gate, both when the call first pauses <i>and</i> again when the approved call resumes. A guard that counted every invocation would have refused the approved action as "over budget". Our guard counts each function-call ID once (tested).</div>
+<p>Other rules on the write path:</p>
+<ul>
+  <li>One action per incident.</li>
+  <li>Restart is limited to the shop's 18 services (never flagd, the databases or the monitoring stack) and uses an argument list, never a shell.</li>
+  <li>Every call is appended to <code>runs/actions/audit.jsonl</code> (who approved, when, what, result), and the settings file is backed up first.</li>
+  <li>The rollback result never names the fault-injection settings, so diagnosis can never learn how faults are injected.</li>
+</ul>
+
+<h2>7. The reviewer and the grounding check</h2>
+<p>An LLM reviewer can judge reasoning, but it cannot see whether a trace ID is real. So code checks the facts first, against the <b>full</b> tool results of the investigation:</p>
+<table>
+  <tr><th>Check</th><th>Hard?</th><th>Fails when</th></tr>
+  <tr><td>consistency</td><td>yes</td><td>incident=true with root cause "none", or the reverse</td></tr>
+  <tr><td>trace_ids_exist</td><td>yes</td><td>a cited 32-hex trace ID that no tool returned (an invented ID)</td></tr>
+  <tr><td>root_cause_seen</td><td>yes</td><td>a root-cause service that no tool result mentions</td></tr>
+  <tr><td>evidence_count, confidence_vs_kinds, evidence_anchored</td><td>no</td><td>too little evidence; "high" without metric, trace and log; evidence with nothing found in the results</td></tr>
+</table>
+<p>A hard failure forces "revise", whatever the Reviewer says (tested with an invented trace ID). After two rounds without approval the incident goes to a human and the Action agent is <b>never called</b>. In run 4 below that rule held on a real run.</p>
+</section>
+
+<section class="page-break">
+<h2>8. State in Postgres</h2>
+<div class="two">
+  <div class="card"><h4>Incident records</h4>Table <code>incidents</code>: status, alert, root cause, and the full record as JSON (timeline, every agent output, reviews, proposal, decision, result, verification, per-step tokens and timing). The record is saved after every step, so a crash still leaves what was done.</div>
+  <div class="card"><h4>ADK sessions</h4><code>DatabaseSessionService</code> in its own schema <code>adk</code>, using SQLAlchemy with psycopg 3 in async mode. One session per step (<code>…-triage</code>, <code>…-diagnosis-1</code>, <code>…-action</code>). This is what lets a different process resume the paused action.</div>
+</div>
+<p><b>Exactly-once approval:</b> the decision is a compare-and-set, <code>UPDATE … WHERE status = 'awaiting_approval'</code>. Two people approving at the same moment: exactly one wins (tested with two threads against the real Postgres). Statuses: <code>investigating → awaiting_approval → approved / rejected → fix_applied → resolved</code>. Other endings: <code>no_incident</code>, <code>needs_human</code>, <code>failed</code>.</p>
+
+<h2>9. Tracing the copilot itself</h2>
+<figure>
+<img src="../assets/phase-4/copilot-jaeger-trace.png" alt="Jaeger trace of one incident">
+<figcaption>Figure 2. One incident is one trace in the copilot's own Jaeger (real run). <code>incident</code> → <code>step triage / knowledge / diagnosis / ...</code> → ADK's agent, LLM (<code>generate_content</code>) and tool (<code>execute_tool</code>) spans. The long gap inside the diagnosis step is the pacer waiting for the free-tier rate limit (section 11).</figcaption>
+</figure>
+<div class="callout warn"><b>Why a separate Jaeger</b>Spans sent into the demo's collector would turn the copilot's own LLM latency into "service metrics" in Prometheus, and the agents would then read their own traffic as a symptom. We checked: the demo's Jaeger has 19 services and no <code>incident-copilot</code>. The code also refuses the collector's ports.</div>
+</section>
+
+<section class="page-break">
+<h2>10. What we observed (all live runs)</h2>
+<table>
+  <tr><th>Run</th><th>Version · model</th><th>Outcome</th><th>Model calls</th><th>Tokens</th><th>Agent time</th></tr>
+  <tr><td>1</td><td>v1 · 2.5-flash</td><td><span class="bad">failed</span>: 429, 5 requests per minute, in the diagnosis step after 30 s</td><td>not counted yet</td><td>36k</td><td>31 s</td></tr>
+  <tr><td>2</td><td>v1 + pacing · 2.5-flash</td><td>diagnosis <b>correct</b>, review approved; <span class="bad">failed</span> at action: 429, <b>20 requests per day</b></td><td>12</td><td>99k</td><td>359 s</td></tr>
+  <tr><td>3</td><td>v2 · 3.5-flash</td><td><b>correct</b>, approved in round 1, rollback approved by a human, <span class="ok">resolved</span> (verified 2 min later)</td><td><b>8</b></td><td>61k</td><td><b>81 s</b></td></tr>
+  <tr><td>4</td><td>v2 · 3.5-flash-lite</td><td>diagnosis <b>correct</b>, but review not approved in 2 rounds → <span class="pending">needs_human</span>, no action</td><td>11</td><td>75k</td><td>123 s</td></tr>
+  <tr><td>5</td><td>v3 · 3.5-flash-lite</td><td><b>correct</b>, approved in round 1, proposal <b>rejected</b> by a human, nothing changed</td><td>8</td><td>57k</td><td>66 s</td></tr>
+  <tr><td>6</td><td>v3 · 3.5-flash (= 3.6-flash)</td><td><b>false alarm</b> on a healthy system (alert: fraud-detection 25 %): <span class="ok">no_incident</span>, high confidence, no action</td><td>13</td><td>117k</td><td>182 s</td></tr>
+  <tr><td>7, 8</td><td>v3 + fix · 3.5 / 3.6-flash</td><td>daily quota used up; run 8 stopped after one step (fix 5)</td><td>0</td><td>0</td><td>222 / 75 s</td></tr>
+  <tr><td>9</td><td>v3 + fix · 3.7-flash</td><td><b>same false alarm</b>: <span class="ok">no_incident</span>, high confidence, no action</td><td><b>9</b></td><td><b>60k</b></td><td>718 s*</td></tr>
+</table>
+<ul>
+  <li><b>Every completed diagnosis of the fault was right:</b> root cause payment, failure type errors, checkout and frontend as symptoms, plus the detail "gold-loyalty users, Invalid token". Both false-alarm runs said "no incident".</li>
+  <li><b>Grounding:</b> in every approved diagnosis all evidence items were found in real tool results, and every cited trace ID existed.</li>
+  <li><b>Nothing changed without a human:</b> in every paused run the settings file still read 50 %. After the approval in run 3 it was identical to the upstream file again.</li>
+  <li><b>The approval was resumed by a separate command</b> (a new process with a fresh Postgres session service) and needed no model call.</li>
+</ul>
+<div class="callout ok"><b>The false alarm</b>With the fault switched off and a 15-minute window free of it, we sent a misleading alert ("fraud-detection 25 % errors"). Retrieval put the known-noise runbook and the past false-alarm postmortem first. Both runs concluded <b>no incident</b> for the right reason: one failure out of very few requests (about 0.07 a second) makes a jumpy ratio. The Action agent was never called.</div>
+<p class="muted">* Run 9's 12 minutes came from the model itself (one 1-call step took 262 s, with no time in the pacer). Model calls and tokens are the comparable numbers.</p>
+<div class="callout warn"><b>Honest limits</b>Two scenarios (one fault, one false alarm), nine runs, several models (forced by the quotas) and hand-written alerts. This shows the system works end to end; it is <b>not</b> an accuracy number. Accuracy across many faults, with baselines and repeated runs, is the Week-5 evaluation.</div>
+</section>
+
+<section class="page-break">
+<h2>11. What we did to improve performance</h2>
+<h3>Problem 1: the Gemini free tier is tiny for a team</h3>
+<p>The free tier allows <b>5 requests per minute</b> and <b>20 per day</b> for each model. A five-agent incident needs one request per model turn, so run 1 died after 30 seconds and run 2 used up the whole day's quota.</p>
+<ul>
+  <li><b>Pacing:</b> a shared limiter (<code>COPILOT_LLM_RPM=5</code>, an ADK <code>before_model_callback</code> on every agent) waits <i>before</i> a request instead of failing after it. Waiting time is recorded per step, so it is never mistaken for slowness.</li>
+  <li><b>Retries:</b> Gemini is built with <code>retry_options</code> (429/5xx, 10–60 s back-off) for what pacing does not prevent.</li>
+  <li><b>Model choice:</b> quotas are per model, so the runs after the daily limit used <code>gemini-3.5-flash</code> and <code>-flash-lite</code>. <code>gemini-2.5-flash-lite</code> is no longer available to new users.</li>
+  <li>ADK printed 4 full tracebacks per failed step. The CLI now hides them (use <code>--debug</code> to see them); the record keeps the error.</li>
+</ul>
+<h3>Problem 2: too many model calls per incident</h3>
+<p>Under a 20-a-day quota, model calls are the cost that matters. Run 2's transcript showed the waste:</p>
+<table>
+  <tr><th>Waste seen</th><th>Change</th><th>Before → after</th></tr>
+  <tr><td>Knowledge: one turn to call two searches, one turn for the JSON, and one malformed call to a tool that does not exist (<code>SetModelResponseRunbooks</code>)</td><td>Retrieval moved into code using the triage query; the agent has no tools and answers in one call (classic RAG: retrieve in code, reason in the LLM)</td><td>3 calls, 197 s → <b>1 call, 11 s</b></td></tr>
+  <tr><td>Diagnosis repeated triage's first two calls exactly</td><td>Prompt: start from the suspects, do not repeat triage's calls, batch independent calls in one turn; budget 15 → 10</td><td>5 calls, 66k tokens → <b>2 calls, 26k</b></td></tr>
+  <tr><td>Triage used one turn per tool</td><td>Prompt: overview and the named service's traces in the same turn; budget 6 → 4</td><td>3 tools in 2 turns</td></tr>
+  <tr><td>After an approved action, ADK asks the model to summarise the result</td><td><code>skip_summarization</code>: the tool result is the answer</td><td>approval: <b>0 calls</b></td></tr>
+</table>
+<p><b>Result:</b> a whole incident in <b>8 model calls</b> (run 2 needed 12 just to reach the action step), 61k tokens instead of 99k (−38 %), 81 s instead of 359 s. <span class="muted">The model differs between the runs: the call count comes from the structure and budgets, while tokens and quality also depend on the model.</span></p>
+<h3>Problem 3: a correct diagnosis that never got approved</h3>
+<p>Run 4 (flash-lite): the diagnosis was right, but the reviewer rejected it twice. Round 1 had high confidence with only metric and log evidence. Asked for traces, round 2 <i>replaced</i> the logs with traces, so it still had only two kinds. The reviewer was right by the rules, and the safety rule held: no action.</p>
+<ul>
+  <li><b>Diagnosis prompt v3:</b> high = one metric, one trace <i>and</i> one log item; medium = two kinds; otherwise lower the confidence. When revising, keep the earlier evidence and add to it.</li>
+  <li><b>Reviewer prompt v2:</b> if only the confidence label is too high, offer both fixes (add the missing kind, or lower the confidence) instead of a new investigation.</li>
+</ul>
+<p><b>Result (run 5, same model, same fault):</b> approved in round 1; 8 calls instead of 11, 57k tokens instead of 75k.</p>
+<h3>Problem 4: proving that nothing is wrong was the most expensive case</h3>
+<p>Run 6 (false alarm) cost 13 calls and 117k tokens. Triage asked for 6 tools (its budget refused 2), and diagnosis used all 10, checking payment, checkout and 30-minute windows to show a negative.</p>
+<ul>
+  <li><b>Triage v3:</b> when the overview shows only noise, check just the alerted service, then answer "incident unlikely".</li>
+  <li><b>Diagnosis v4</b> and the coordinator: when triage saw no sign of an incident, the task becomes a quick check of the alerted service's metrics, error traces and warn logs, in one turn.</li>
+</ul>
+<p><b>Result (run 9, same alert):</b> still "no incident" with the right reason; <b>9 calls instead of 13, 11 tools instead of 16, 60k tokens instead of 117k (−49 %)</b>. <span class="muted">The model differs (3.7-flash), forced by the daily quotas.</span></p>
+<h3>Problem 5: a used-up daily quota wasted minutes</h3>
+<p>After a <i>daily</i> 429 the coordinator kept going, and each step sat through the client's retries before failing (222 s for nothing). A step error naming a "PerDay" quota now stops the investigation at once, with a clear message to switch model or wait. Run 8 stopped after one step (75 s), and a unit test checks that no later agent is called.</p>
+</section>
+
+<section class="page-break">
+<h2>12. Bugs and surprises</h2>
+<dl class="qa">
+  <dt>1. The tool guard runs twice</dt>
+  <dd>ADK calls <code>before_tool_callback</code> again when an approved call resumes. Found by reading ADK 2.15's source before the first run. The guard now counts by function-call ID.</dd>
+  <dt>2. ADK's event order</dt>
+  <dd>For one paused call, ADK emits the confirmation request <i>first</i> and the "waiting" placeholder result second (found in its source). The runtime recognises the placeholder by the event's own marker, so order does not matter.</dd>
+  <dt>3. A rejection with a different shape</dt>
+  <dd>ADK's rejection result is <code>{"error": "This tool call is rejected."}</code>: the error is a plain string, while our tools use a dict. That would have crashed the reject path, and it was found while re-reading the code. One shared helper now reads both shapes.</dd>
+  <dt>4. A default argument captured too early</dt>
+  <dd><code>verify_recovery(health=get_service_health)</code> bound the function when the module loaded, so tests could not replace it. Now it is looked up at call time.</dd>
+  <dt>5. The free tier's limits</dt>
+  <dd>5 per minute and 20 per day per model, plus a model that disappeared for new users (HTTP 404). Section 11.</dd>
+  <dt>6. A malformed tool call</dt>
+  <dd>With an answer schema made of nested lists, Gemini once called <code>SetModelResponseRunbooks</code>, a tool that does not exist. The guard refused it, and removing the knowledge agent's tools removed the problem.</dd>
+  <dt>7. Revisions that drop evidence</dt>
+  <dd>Asked for traces, the diagnosis swapped its log evidence for trace evidence. Prompt v3 says to keep and add.</dd>
+  <dt>8. A model name that is an alias</dt>
+  <dd>Runs started with <code>gemini-3.5-flash</code> came back with 429s naming <code>gemini-3.6-flash</code>. On this key the first name is served by the second, so they share one daily quota. Read the quota error, not the model name you asked for.</dd>
+</dl>
+
+<h2>13. Testing</h2>
+<table>
+  <tr><th>Suite</th><th>Count</th><th>What it proves</th></tr>
+  <tr><td>Unit (no network, no Gemini, no database)</td><td>642</td><td>Scripted models drive the <b>real</b> ADK loop: tools per agent, guard, pause/resume, approve and reject, review loop, forced revision on an invented trace ID, every ending, exactly-once decisions, resume by a new coordinator, verification, the remediation lock, no leaks.</td></tr>
+  <tr><td><code>db</code> (real Postgres, private schema)</td><td>23</td><td>Records, the approval race between two threads, and a paused action resumed through a <b>fresh</b> Postgres session service.</td></tr>
+  <tr><td><code>live</code> (running demo)</td><td>13</td><td>Every telemetry tool against the real backends, with no flag leaks.</td></tr>
+</table>
+<p>All 675 passed on the first run. The unit and database suites were run again after every change in section 11, and the final suite (678 with the 3 new tests) passed in full, including the live tests. Tests can never touch the real demo: in tests the settings path points at a missing file and the docker call is blocked.</p>
+</section>
+
+<section class="page-break">
+<h2>14. Status, how to run it, limitations</h2>
+<pre><code>docker compose up -d kb-postgres copilot-jaeger
+scripts/start_demo.sh                                   # the shop + its telemetry
+export COPILOT_LLM_RPM=5                                # Gemini free tier: 5 requests/minute
+.venv/bin/python scripts/incident.py run                # -> AWAITING_APPROVAL + the approve command
+.venv/bin/python scripts/incident.py approve &lt;id&gt; --verify-minutes 8
+.venv/bin/python scripts/incident.py reject  &lt;id&gt; --note "why"
+.venv/bin/python scripts/incident.py list | show &lt;id&gt;   # Jaeger: http://localhost:16687</code></pre>
+<ul>
+  <li><b>Free tier:</b> about 2 incidents a day per model (8 calls each, 20 a day). Use a second model, or a paid key, for more.</li>
+  <li><b>Two scenarios tested live:</b> payment errors and a false alarm. Latency, memory and queue faults are the Week-5 suite; for those the recovery check honestly reports "a human must check".</li>
+  <li>The rollback is the practice environment's stand-in. A real deployment would revert a config version or a release.</li>
+  <li>Postmortem drafts are not added to the knowledge base automatically: a human reviews them, and automatic ingestion would let evaluation runs feed themselves answers.</li>
+  <li>The decision trace is separate from the investigation trace; linking them with a span link is a small follow-up.</li>
+</ul>
+
+<h2>15. Interview questions and answers</h2>
+<dl class="qa">
+  <dt>Why five agents instead of one?</dt>
+  <dd>Each agent has one job, a few tools and a narrow prompt, so it is easier to test and to improve alone. The live runs showed it: we fixed the knowledge step and the reviewer loop separately, each measured before and after.</dd>
+  <dt>Who decides the order: an LLM coordinator?</dt>
+  <dd>No, code. Review always happens before action, the run always stops for a human at the same place, budgets are enforced, and evaluation runs are comparable. The LLMs make the judgement calls inside each step.</dd>
+  <dt>How does human approval work technically?</dt>
+  <dd>ADK tool confirmation: the write tool is registered with <code>require_confirmation=True</code>. ADK pauses with a confirmation request, we store the paused call in Postgres, and any process can later answer it in the same ADK session. ADK then runs the tool. The tool also refuses to run without a confirmed approval, and approvals are compare-and-set, so they apply exactly once.</dd>
+  <dt>How do you stop it inventing evidence?</dt>
+  <dd>Code checks every cited trace ID and service against the real tool results before the reviewer even reads it. An invented ID forces a revision, and an unapproved diagnosis never reaches the Action agent.</dd>
+  <dt>What did you improve, and how did you know?</dt>
+  <dd>From the transcripts and per-step counters: model calls 12+ → 8 per incident (retrieval moved into code, no repeated calls, parallel tool calls, no summarisation after the action), tokens −38 %, 359 s → 81 s. A reviewer loop that never converged was fixed with a clearer evidence rule, verified on the same model and fault. False alarms went from 13 to 9 calls (−49 % tokens), and a used-up daily quota now stops a run in one step instead of wasting minutes.</dd>
+  <dt>What surprised you?</dt>
+  <dd>The free tier: 5 requests a minute and 20 a day per model, which a team of agents uses up in two incidents. And two ADK internals found by reading its source: the tool guard runs again on resume, and the order of the pause events.</dd>
+  <dt>Why is the copilot's tracing separate?</dt>
+  <dd>Its spans in the demo's pipeline would become service metrics that its own agents then read as symptoms. A separate Jaeger keeps the system under test clean.</dd>
+  <dt>What would change for a real customer?</dt>
+  <dd>The action tools would call their deployment system (revert a release, change a config version) through a service account limited to those calls. Approvals would go through their chat or paging tool. The same records, audit log and grounding check stay.</dd>
+</dl>
+<h3>Next: Week 5</h3>
+<p>The evaluation suite: inject each fault type several times, score root-cause accuracy, time to diagnosis, evidence-grounded rate and cost, and compare against baselines and ablations (single agent vs. team, with vs. without RAG).</p>
+</section>
+
+</body>
+</html>

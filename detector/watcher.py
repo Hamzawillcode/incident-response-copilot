@@ -1,6 +1,7 @@
 """Incident detector, version 1: a fixed error-ratio threshold (no AI).
 
-    .venv/bin/python -m detector.watcher             # watch and start the agent on an alert
+    .venv/bin/python -m detector.watcher             # watch; on an alert the agent team investigates
+    .venv/bin/python -m detector.watcher --single    # Week-2 behaviour: one diagnosis agent
     .venv/bin/python -m detector.watcher --dry-run   # only print alerts (no Gemini calls)
 
 Every ``poll`` seconds it reads the error ratio of every service with the
@@ -11,7 +12,9 @@ low-traffic services (checkout sees ~1-3 orders a minute) swing between 0 % and
 When at least one service stays above ``threshold`` % for ``for`` seconds, it
 raises ONE alert for the whole incident (failures cascade, so payment, checkout
 and frontend breaching together are one incident, not three), hands the alert
-to the diagnosis agent, then stays quiet for ``cooldown`` seconds.
+to the agent team (Week 4: the run stops at "awaiting_approval" and prints the
+approve command; nothing is changed without a human), then stays quiet for
+``cooldown`` seconds.
 
 Version 2 (later): replace the fixed threshold by a learned normal band
 (rolling mean +- 3 standard deviations) so latency faults are caught too.
@@ -137,6 +140,7 @@ def main() -> int:
     p.add_argument("--cooldown", type=float, default=600.0, help="seconds of silence after an alert")
     p.add_argument("--poll", type=float, default=15.0, help="seconds between checks")
     p.add_argument("--dry-run", action="store_true", help="print alerts but do not start the agent")
+    p.add_argument("--single", action="store_true", help="use the Week-2 single diagnosis agent")
     p.add_argument("--once", action="store_true", help="check once and exit")
     args = p.parse_args()
     cfg = DetectorConfig(threshold_pct=args.threshold, for_seconds=args.for_seconds, cooldown_seconds=args.cooldown)
@@ -145,6 +149,9 @@ def main() -> int:
         text = alert.message(cfg)
         print(f"\n{'!' * 78}\n{text}\n{'!' * 78}", flush=True)
         if args.dry_run:
+            return
+        if not args.single:
+            _run_team(text, alert)
             return
         from copilot.agents.console import print_step, save_run
         from copilot.agents.diagnosis import diagnose
@@ -170,6 +177,33 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nstopped")
     return 0
+
+
+def _run_team(text: str, alert: Alert) -> None:
+    """Week 4: the agent team investigates; a proposed action waits for a human."""
+    import asyncio
+
+    from copilot.agents.console import format_incident, print_team_step, save_run
+    from copilot.agents.coordinator import IncidentCoordinator
+
+    async def investigate():
+        coordinator = IncidentCoordinator(on_step=print_team_step)
+        try:
+            return await coordinator.investigate(text)
+        finally:
+            await coordinator.close()
+
+    try:
+        record = asyncio.run(investigate())
+    except Exception as exc:  # the watcher must keep watching even if one investigation cannot start
+        print(f"\nthe agent team could not run: {type(exc).__name__}: {exc}\n", flush=True)
+        return
+    data = record.model_dump(mode="json")
+    path = save_run({**data, "detector": {"fired_at": alert.fired_at, "breach_started_at": alert.breach_started_at,
+                                          "services": alert.services}}, prefix=f"incident-{record.id}")
+    print(f"\n{format_incident(data)}\n  saved:      {path}", flush=True)
+    if record.status == "awaiting_approval":
+        print(f"  decide:     .venv/bin/python scripts/incident.py approve {record.id}   (or reject)\n", flush=True)
 
 
 if __name__ == "__main__":

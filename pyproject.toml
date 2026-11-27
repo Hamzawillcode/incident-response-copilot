@@ -1,6 +1,6 @@
 [project]
 name = "incident-response-copilot"
-version = "0.4.0"
+version = "0.5.0"
 description = "Multi-agent incident detection and diagnosis for microservices (OpenTelemetry Demo testbed)."
 requires-python = ">=3.11"
 dependencies = [
@@ -9,6 +9,8 @@ dependencies = [
   "python-dotenv>=1.0",
   "psycopg[binary]>=3.2,<4",
   "pyyaml>=6.0",
+  "sqlalchemy[asyncio]>=2.0,<3",
+  "opentelemetry-exporter-otlp-proto-http>=1.30",
 ]
 
 [project.optional-dependencies]

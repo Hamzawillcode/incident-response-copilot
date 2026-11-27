@@ -94,17 +94,22 @@ class Diagnosis(BaseModel):
 # Agent
 # --------------------------------------------------------------------------- #
 def build_diagnosis_agent(model: str | BaseLlm | None = None, max_tool_calls: int = MAX_TOOL_CALLS, *,
-                          knowledge: bool = False) -> LlmAgent:
+                          knowledge: bool = False, team: bool = False, before_model_callback=None) -> LlmAgent:
     """Create the diagnosis agent. ``model`` defaults to $COPILOT_MODEL or gemini-2.5-flash.
 
     ``knowledge=True`` adds ``search_runbooks`` and ``search_postmortems`` and the prompt section that
     explains them (copilot/prompts/diagnosis_knowledge.md). The default stays the Week-2 agent, so the
     "single agent without RAG" baseline can still be measured.
+
+    ``team=True`` (Week 4) adds the section on working with the triage report, the knowledge report
+    and the reviewer's feedback (copilot/prompts/diagnosis_team.md).
     """
     tools = list(TOOLS) + (list(KB_TOOLS) if knowledge else [])
     prompt = load_prompt("diagnosis")
     if knowledge:
         prompt += "\n\n" + load_prompt("diagnosis_knowledge")
+    if team:
+        prompt += "\n\n" + load_prompt("diagnosis_team")
     return LlmAgent(
         name="diagnosis",
         description="Finds the root cause of an incident from metrics, traces and logs (read-only).",
@@ -115,6 +120,7 @@ def build_diagnosis_agent(model: str | BaseLlm | None = None, max_tool_calls: in
         output_key=OUTPUT_KEY,
         generate_content_config=types.GenerateContentConfig(temperature=0.1),
         before_tool_callback=_tool_guard(max_tool_calls, frozenset(t.__name__ for t in tools)),
+        before_model_callback=before_model_callback,
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
     )
