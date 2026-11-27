@@ -1,12 +1,14 @@
 [project]
 name = "incident-response-copilot"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-agent incident detection and diagnosis for microservices (OpenTelemetry Demo testbed)."
 requires-python = ">=3.11"
 dependencies = [
   "httpx>=0.28,<0.29",
   "google-adk>=2.15,<3",
   "python-dotenv>=1.0",
+  "psycopg[binary]>=3.2,<4",
+  "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -29,4 +31,5 @@ addopts = "-ra"
 markers = [
   "live: needs the running OpenTelemetry Demo backends (auto-skipped otherwise)",
   "allow_network: unit test that deliberately makes a real (local) connection attempt",
+  "db: needs the knowledge-base Postgres from docker-compose.yml (auto-skipped otherwise)",
 ]

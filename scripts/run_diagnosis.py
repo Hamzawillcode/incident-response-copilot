@@ -4,6 +4,7 @@ Usage (demo running, GOOGLE_API_KEY in .env):
     .venv/bin/python scripts/run_diagnosis.py
     .venv/bin/python scripts/run_diagnosis.py "checkout error ratio above 5% for 2 minutes"
     .venv/bin/python scripts/run_diagnosis.py --runs 5        # repeat to see run-to-run variation
+    .venv/bin/python scripts/run_diagnosis.py --knowledge     # also search runbooks and postmortems (Week 3)
 
 Each run is saved to runs/<timestamp>-diagnosis.json (alert, steps, answer,
 tokens, latency) so you can compare runs and paste transcripts when debugging.
@@ -34,6 +35,8 @@ def main() -> int:
     parser.add_argument("alert", nargs="?", default=DEFAULT_ALERT, help="alert text given to the agent")
     parser.add_argument("--runs", type=int, default=1, help="repeat the investigation N times")
     parser.add_argument("--model", default=None, help="override $COPILOT_MODEL")
+    parser.add_argument("--knowledge", action="store_true",
+                        help="add search_runbooks/search_postmortems (needs the ingested knowledge base)")
     args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
@@ -44,8 +47,9 @@ def main() -> int:
     answers = Counter()
     for i in range(1, args.runs + 1):
         print(f"\n{'=' * 78}\nRUN {i}/{args.runs}   alert: {args.alert}\n{'=' * 78}")
-        run = diagnose(args.alert, agent=build_diagnosis_agent(model=args.model), on_step=print_step)
-        path = save_run(run.to_dict())
+        agent = build_diagnosis_agent(model=args.model, knowledge=args.knowledge)
+        run = diagnose(args.alert, agent=agent, on_step=print_step)
+        path = save_run(run.to_dict(), prefix="diagnosis-knowledge" if args.knowledge else "diagnosis")
         print("-" * 78)
         if run.error:
             print(f"ERROR: {run.error}")

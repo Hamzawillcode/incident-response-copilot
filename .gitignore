@@ -13,4 +13,6 @@ opentelemetry-demo/
 
 # Secrets and local run output
 .env
+.env.*
+!.env.example
 runs/

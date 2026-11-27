@@ -1,6 +1,7 @@
 """The single diagnosis agent (Week 2): one Google ADK LlmAgent with read-only tools.
 
     agent = build_diagnosis_agent()                 # Gemini, from COPILOT_MODEL
+    agent = build_diagnosis_agent(knowledge=True)   # + runbook / postmortem search (Week 3)
     run = diagnose("checkout error ratio above 5% since 11:53 UTC")
     run.diagnosis.root_cause_service                # "payment"
     run.steps                                       # every tool call and result summary
@@ -15,9 +16,9 @@ Gemini returns the final answer, which ADK validates against ``Diagnosis``.
 
 Safety
 ------
-* Only the read-only tools in ``copilot.tools.TOOLS`` are attached. There is
-  no flag, shell, HTTP or write tool, so the agent cannot see or change the
-  fault switches.
+* Only the read-only tools in ``copilot.tools.TOOLS`` are attached (plus
+  ``copilot.tools.KB_TOOLS`` with ``knowledge=True``). There is no flag, shell,
+  HTTP or write tool, so the agent cannot see or change the fault switches.
 * ``before_tool_callback`` enforces an allow-list (defence in depth) and a
   tool-call budget, so a confused model cannot loop forever or run up cost.
   ADK's internal ``set_model_response`` (how the final JSON is handed in when
@@ -44,7 +45,7 @@ from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
 
 from copilot.prompts import load_prompt
-from copilot.tools import TOOLS
+from copilot.tools import KB_TOOLS, TOOLS
 
 __all__ = ["Diagnosis", "DiagnosisRun", "Evidence", "build_diagnosis_agent", "diagnose", "run_diagnosis"]
 
@@ -54,6 +55,7 @@ APP_NAME = "incident-copilot"
 OUTPUT_KEY = "diagnosis"
 STATE_TOOL_CALLS = "tool_calls_used"
 ALLOWED_TOOL_NAMES = frozenset(t.__name__ for t in TOOLS)
+KNOWLEDGE_TOOL_NAMES = frozenset(t.__name__ for t in KB_TOOLS)
 # ADK adds this internal tool when the model cannot combine tools with an output
 # schema natively (e.g. Gemini through an AI Studio key): the model "calls" it to
 # hand in the final JSON answer. It reads and changes nothing.
@@ -83,36 +85,48 @@ class Diagnosis(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     alternative_causes: list[str] = Field(default_factory=list, description="Up to 2 other suspects.")
     suggested_next_checks: list[str] = Field(default_factory=list)
+    references: list[str] = Field(default_factory=list, description=(
+        "Runbooks or postmortems that informed the conclusion (their `source`, e.g. kb/runbooks/payment.md). "
+        "Empty if none were used."))
 
 
 # --------------------------------------------------------------------------- #
 # Agent
 # --------------------------------------------------------------------------- #
-def build_diagnosis_agent(model: str | BaseLlm | None = None, max_tool_calls: int = MAX_TOOL_CALLS) -> LlmAgent:
-    """Create the diagnosis agent. ``model`` defaults to $COPILOT_MODEL or gemini-2.5-flash."""
+def build_diagnosis_agent(model: str | BaseLlm | None = None, max_tool_calls: int = MAX_TOOL_CALLS, *,
+                          knowledge: bool = False) -> LlmAgent:
+    """Create the diagnosis agent. ``model`` defaults to $COPILOT_MODEL or gemini-2.5-flash.
+
+    ``knowledge=True`` adds ``search_runbooks`` and ``search_postmortems`` and the prompt section that
+    explains them (copilot/prompts/diagnosis_knowledge.md). The default stays the Week-2 agent, so the
+    "single agent without RAG" baseline can still be measured.
+    """
+    tools = list(TOOLS) + (list(KB_TOOLS) if knowledge else [])
     prompt = load_prompt("diagnosis")
+    if knowledge:
+        prompt += "\n\n" + load_prompt("diagnosis_knowledge")
     return LlmAgent(
         name="diagnosis",
         description="Finds the root cause of an incident from metrics, traces and logs (read-only).",
         model=model or os.environ.get("COPILOT_MODEL", DEFAULT_MODEL),
         instruction=lambda _ctx: prompt,
-        tools=list(TOOLS),
+        tools=tools,
         output_schema=Diagnosis,
         output_key=OUTPUT_KEY,
         generate_content_config=types.GenerateContentConfig(temperature=0.1),
-        before_tool_callback=_tool_guard(max_tool_calls),
+        before_tool_callback=_tool_guard(max_tool_calls, frozenset(t.__name__ for t in tools)),
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
     )
 
 
-def _tool_guard(max_tool_calls: int):
+def _tool_guard(max_tool_calls: int, allowed: frozenset[str] = ALLOWED_TOOL_NAMES):
     """Allow-list + budget. Returning a dict skips the real tool and hands that dict to the model."""
 
     def guard(tool, args: dict[str, Any], tool_context) -> dict[str, Any] | None:
         if tool.name == ANSWER_TOOL:
             return None
-        if tool.name not in ALLOWED_TOOL_NAMES:
+        if tool.name not in allowed:
             return {"status": "error", "error": {"type": "forbidden_tool",
                                                  "message": f"Tool {tool.name!r} is not available."}}
         used = int(tool_context.state.get(STATE_TOOL_CALLS, 0)) + 1
@@ -268,6 +282,9 @@ def summarise_result(response: Any) -> dict[str, Any]:
     if isinstance(response.get("services"), list):
         out["top_services"] = [f"{s['service']}: {'; '.join(s['observations'])}"
                                for s in response["services"] if s.get("observations")][:4]
+    if isinstance(response.get("results"), list):          # knowledge-base search
+        out["retrieval"] = response.get("retrieval")
+        out["top_results"] = [str(r.get("source")) for r in response["results"][:4] if isinstance(r, dict)]
     if isinstance(response.get("operations"), list):
         out["top_operations"] = [f"{o['operation']}: {'; '.join(o['observations']) or 'normal'}"
                                  for o in response["operations"][:3]]

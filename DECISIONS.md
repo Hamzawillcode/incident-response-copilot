@@ -327,3 +327,153 @@ consequences. "Evidence" points to what we actually observed.
 - **Not yet measured:** Gemini runs. No API key was configured, so the Week-2 target ("finds the payment fault
   most of the time") still has to be checked with `scripts/run_diagnosis.py --runs 5`. No accuracy number may be
   quoted until then.
+
+---
+
+## Phase 3 (Week 3): Knowledge base and RAG
+
+### D-401 Postgres + pgvector in the copilot's own compose file, loopback only
+- **Context:** The guide stores runbooks and postmortems in pgvector, and from Week 4 the same Postgres holds
+  sessions and incidents. The demo has its own Postgres (`astronomy-db`), but that database is part of the system
+  under test.
+- **Decision:** `docker-compose.yml` at the project root with one service, `kb-postgres`
+  (`pgvector/pgvector:0.8.1-pg17`, pinned), published on `127.0.0.1:5433` with a named volume.
+- **Consequences:** The copilot's memory never lives inside the system it diagnoses: a fault in `astronomy-db` cannot
+  take the knowledge base down with it. The credentials are local-development defaults (`copilot`/`copilot`) and can
+  be overridden. Cloud SQL replaces this container in Week 6.
+
+### D-402 Knowledge content: 14 runbooks and 5 seed postmortems, written for this shop
+- **Runbooks:** one per service area, plus "triage: symptom vs. cause" and "known noise and false alarms". YAML
+  front matter (`services`, `tags`), then the sections Overview, Symptoms, Diagnosis, Common causes, Remediation and
+  Verification.
+- **Names checked against the demo:** every metric, span and attribute name in the runbooks was checked against the
+  demo source or the recorded fixtures. For example the product ID attribute is `demo.product.id`, not
+  `app.product.id`. Other checked names: `container_memory_usage_total_bytes`, `postgresql_backends`,
+  `publish orders`, `valkey-cart:6379`. A wrong name in a runbook would send the agent to `no_data`, which is the
+  D-302 trap ("no data, so nothing is wrong").
+- **Postmortems are made up.** `kb/README.md` says so; the documents themselves read like real write-ups.
+- **Overlap with the faults we will inject (deliberate, recorded only here, never in `kb/`):**
+  - "seen before": payment charges rejected (like `paymentFailure`), recommendation cache leak (like
+    `recommendationCacheFailure`), orders queue backlog (like `kafkaQueueProblems`);
+  - related but different: cart store unavailable. Its root cause is `valkey-cart`, while the injectable fault is in
+    the cart service. It teaches "the service with the most errors is not the cause";
+  - false alarm: supports the no-fault scenario;
+  - no postmortem: `productCatalogFailure`, `productCatalogLockContention`, `loadGeneratorFloodHomepage`,
+    `paymentUnreachable`, `adFailure`, `adHighCpu`, `adManualGc`, `emailMemoryLeak`, `imageSlowLoad`,
+    `intlShippingSlowdown`, `cartFailure`.
+
+  Week 5 can therefore report accuracy separately for "seen before" and "runbook only" faults.
+- Remediation is written in real-world terms ("roll back the most recent configuration change"). Week 4's
+  approval-gated action tool maps that to switching the fault off.
+
+### D-403 No fault-injection terms in the knowledge base (three layers)
+- Ingestion refuses any document with a line matching the telemetry filter patterns (`filters.mentions_flags`) and
+  reports `file:line`.
+- A unit test scans every `kb/*/*.md` file for a broader pattern: even the word "flag" is absent.
+- The tools refuse flag-related queries before searching and pass their output through `scrub_output`, like the
+  telemetry tools.
+- **Why:** a runbook that said "switch off paymentFailure" would hand the agent the answer and make every evaluation
+  meaningless.
+
+### D-404 Chunking: one chunk per `##` section, with its title and heading as context
+- A section ("Symptoms", "Diagnosis", "Remediation") is the unit an engineer actually needs. Whole files would dilute
+  the match and cost tokens. Fixed-size windows would cut steps in half.
+- The text that gets embedded is `title + heading + section text`, so a section still makes sense on its own. Text
+  before the first `##` becomes "Overview". Sections over 1,500 characters are split at blank lines, never inside a
+  code block.
+- Result: 19 documents give 116 sections (81 runbook, 35 postmortem). IDs such as `runbook/payment#05-remediation`
+  are stable.
+
+### D-405 Gemini embeddings: `gemini-embedding-001`, 768 dimensions, separate task types
+- Sections use `RETRIEVAL_DOCUMENT` and queries use `RETRIEVAL_QUERY`. The model is trained for this asymmetric case
+  (a short question against a paragraph).
+- `output_dimensionality=768` truncates the 3072-dimension default (Matryoshka training makes this safe). The table is
+  4 times smaller and stays under pgvector's 2,000-dimension index limit. Truncated vectors are not unit length, so
+  they are L2-normalised.
+- The model is configurable (`KB_EMBEDDING_MODEL`). Each row stores the `embedding_model` that produced it. Vector
+  search compares only rows from the query's model (vectors from different models are not comparable), and ingestion
+  re-embeds rows when the model changes.
+- Query embedding makes one attempt with a 10 s timeout and has a 256-entry cache. Document embedding sends batches of
+  50 and retries rate limits, server errors and timeouts (back-off of 2, 4 and 8 s).
+- Data exposure: query text is sent to Google, the provider that already receives every prompt and tool result.
+
+### D-406 Hybrid retrieval: full text + pgvector, fused with RRF, grouped by document
+- **Keyword:** `plainto_tsquery` (stems, drops stop words, ignores operator syntax), with its ANDs rewritten to ORs.
+  A description of symptoms should rank documents by shared words, not require every word. `ts_rank` weighs
+  title/heading (A) above services/tags (B) and body text (D).
+- **Vector:** exact cosine distance (`<=>`) with no approximate index. 116 rows take about a millisecond, and HNSW
+  combined with WHERE filters can return fewer rows than asked. Add the index above roughly 10,000 rows.
+- **Fusion:** Reciprocal Rank Fusion with k = 60 (Cormack et al., 2009) uses only ranks, so a `ts_rank` score and a
+  cosine similarity never have to be put on the same scale.
+- **Grouping:** the result is k documents, each with its two best sections (truncated at 1,200 characters). For 4
+  runbooks that is about 7 KB.
+- **Why hybrid:** keyword search misses paraphrases (measured in D-411). Vectors alone are weaker on exact names
+  (`oteldemo.PaymentService/Charge`, `valkey-cart`) and cannot say why something matched. Production RAG systems
+  commonly use both.
+
+### D-407 The knowledge base must never block an investigation
+- No key: ingestion stores text only and search runs keyword-only (`retrieval: "keyword"`).
+- An embedding failure at query time falls back to keyword search with a `warnings` entry.
+- If nothing is embedded with the current model, search falls back to keyword with a warning and skips the
+  query-embedding call, so no API call is wasted.
+- If the database is down, the tool returns `status: error` (`connection`) with the start command, and the agent
+  continues with telemetry (the prompt tells it to).
+- The explicit modes `hybrid` and `vector` raise instead of falling back, so a silent fallback can never distort a
+  measurement.
+
+### D-408 Read-only search path, single writer, schema-qualified SQL
+- Search sessions run with `default_transaction_read_only=on`, a 5 s `statement_timeout` and autocommit. A test checks
+  that a `DELETE` fails with `ReadOnlySqlTransaction`.
+- Only `copilot/kb/ingest.py` contains write SQL. A test scans `store.py`, `search.py`, `embeddings.py` and
+  `tools/kb.py` for INSERT, UPDATE, DELETE and DDL.
+- All values are query parameters. Hostile queries (`'; DROP TABLE ...`, tsquery operators, `%(query)s`) are tested
+  against the real database.
+- **Bug found while writing tests:** with unqualified table names, `--rebuild` in an empty `KB_SCHEMA` would have
+  resolved through `search_path` to `public.kb_chunks` and dropped the real table. Every statement now names
+  `<schema>.kb_chunks`.
+- **Residual risk:** read-only is a session default that a session could switch off. The code never does, and the
+  LLM cannot send SQL. A separate read-only database role is the Week-6 hardening for Cloud SQL.
+
+### D-409 Incremental, all-or-nothing ingestion (`python -m copilot.kb.ingest`)
+- Each section has a content hash. Only new or changed sections are embedded, so re-running on an unchanged
+  knowledge base makes zero API calls (tested).
+- Embeddings are computed before any write, and upserts and deletes run in one transaction. A failed embedding run
+  leaves the database untouched (tested).
+- Text can be stored now and embedded later: adding the key and re-running ingestion embeds all 116 sections once.
+
+### D-410 The diagnosis agent gets the knowledge tools only with `knowledge=True`
+- The default agent's tools and prompt are unchanged, so the Week-2 "single agent, no RAG" baseline (the guide's
+  ablation in Figure 8) can still be measured.
+- `knowledge=True` (or `scripts/run_diagnosis.py --knowledge`) gives 7 tools and appends
+  `copilot/prompts/diagnosis_knowledge.md`. It tells the agent to search after the overview, that knowledge is not
+  evidence, and to list `references`.
+- The new optional `Diagnosis.references` (default empty) is the only change the default agent can see.
+- No new agent this week. The Knowledge (RAG) agent comes with the Week-4 split into a Coordinator and sub-agents.
+
+### D-411 Retrieval check (measured) and its limits
+- `eval/retrieval_queries.yaml`: 28 queries (20 that share words with the right document, 8 paraphrases), each with
+  the documents that count as correct. Run with `scripts/check_retrieval.py`.
+- **Keyword-only, 2026-11-27 (no Gemini key):**
+
+  | Queries | Count | hit@1 | hit@3 | MRR |
+  |---|---|---|---|---|
+  | Keyword-style | 20 | 1.00 | 1.00 | 1.00 |
+  | Paraphrases | 8 | 0.50 | 0.75 | 0.66 |
+  | All | 28 | 0.86 | 0.93 | 0.90 |
+
+- **Week-3 done criterion met:** "checkout errors" returns the checkout runbook at rank 1 (target: top 3). "payment
+  charge errors" returns the payment runbook first.
+- **Limits:** the same person wrote the documents and the queries, after reading the documents. This is a regression
+  check, not a benchmark. Hybrid retrieval is **not measured yet**: it needs the Gemini key.
+
+### D-412 Test strategy for the knowledge base
+- Unit tests are hermetic: no database (connections blocked unless a test is marked `db`) and no Gemini (conftest
+  replaces `make_embedder`). A fake google-genai client tests batching, task types, retries and error mapping. An
+  in-memory store tests fusion, grouping and fallbacks.
+- `db` tests run against the real Postgres. Each runs in a private schema (`kb_test_<random>`) that is dropped
+  afterwards, and they are skipped when the database is down. An offline `HashingEmbedder` exercises the pgvector
+  path without network access.
+- **Status:** 578 tests = 545 unit + 20 db + 13 live. 565 passed. The 13 live tests were skipped because the demo was
+  not running during this session. That is 151 new tests (427 before).
+- **Not yet done:** Gemini embeddings, the hybrid measurement and agent runs with `--knowledge`. All three need
+  `GOOGLE_API_KEY` in `.env`.

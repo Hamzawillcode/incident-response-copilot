@@ -2,20 +2,29 @@
 
 Unit tests never touch the network: an autouse fixture replaces
 ``copilot.tools._http.make_client`` with a client whose transport fails the
-test. Tests opt in to a recorded response with ``replay(...)`` or to a
-transport failure with ``failing(...)``. Tests marked ``live`` or
-``allow_network`` keep the real client.
+test, blocks knowledge-base database connections and makes sure no test can
+call the Gemini embedding API. Tests opt in to a recorded response with
+``replay(...)``, to a transport failure with ``failing(...)``, to an offline
+knowledge base with ``kb_offline`` and to a private schema in the real
+knowledge-base Postgres with ``kb_db`` (marker ``db``). Tests marked ``live`` or
+``allow_network`` keep the real HTTP client.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import uuid
 from pathlib import Path
 from typing import Any, Callable
 
 import httpx
+import psycopg
 import pytest
 
+from copilot.kb import embeddings as kb_embeddings
+from copilot.kb import store as kb_store
+from copilot.kb.store import StoreError
 from copilot.tools import _http
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -59,7 +68,16 @@ CONFIG_VARS = (
     "PROMETHEUS_URL", "PROMETHEUS_TIMEOUT_SECONDS", "PROMETHEUS_MIN_STEP_SECONDS",
     "OPENSEARCH_URL", "OPENSEARCH_LOGS_INDEX", "OPENSEARCH_TIMEOUT_SECONDS",
     "JAEGER_URL", "JAEGER_TIMEOUT_SECONDS",
+    "KB_DATABASE_URL", "KB_SCHEMA", "KB_EMBEDDING_MODEL", "KB_EMBEDDING_TIMEOUT_SECONDS",
+    "KB_CONNECT_TIMEOUT_SECONDS", "KB_STATEMENT_TIMEOUT_MS",
+    "GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENAI_USE_VERTEXAI",
 )
+# Read before any test clears it: db tests use the developer's knowledge-base URL, if set.
+_KB_DATABASE_URL = os.environ.get("KB_DATABASE_URL")
+
+
+def _blocked_db(*args, **kwargs):
+    raise AssertionError("unexpected knowledge-base database connection in a unit test")
 
 
 @pytest.fixture(autouse=True)
@@ -68,6 +86,10 @@ def _no_network(request, monkeypatch):
         return
     for var in CONFIG_VARS:  # unit tests must not depend on the developer's environment
         monkeypatch.delenv(var, raising=False)
+    # No test may call the Gemini embedding API; tests that need vectors inject a fake embedder.
+    monkeypatch.setattr(kb_embeddings, "make_embedder", lambda: None)
+    if not request.node.get_closest_marker("db"):
+        monkeypatch.setattr(kb_store, "connect", _blocked_db)
     if request.node.get_closest_marker("allow_network"):
         return
     monkeypatch.setattr(_http, "make_client",
@@ -112,3 +134,41 @@ def failing(monkeypatch) -> Callable[[Exception], list]:
         return seen
 
     return make
+
+
+@pytest.fixture
+def kb_offline(monkeypatch) -> list[bool]:
+    """The knowledge base is unreachable: every connection attempt raises StoreError("connection")."""
+    attempts: list[bool] = []
+
+    def connect(*, read_only: bool = True):
+        attempts.append(read_only)
+        raise StoreError("connection", "Cannot reach the knowledge base (unit test). "
+                                       "Start it with `docker compose up -d kb-postgres`.")
+
+    monkeypatch.setattr(kb_store, "connect", connect)
+    return attempts
+
+
+@pytest.fixture
+def kb_db(request, monkeypatch):
+    """A private, empty schema in the real knowledge-base Postgres (dropped afterwards).
+
+    Tests using it must be marked ``db``; they are skipped when the database is not running.
+    """
+    assert request.node.get_closest_marker("db"), "tests using kb_db must be marked @pytest.mark.db"
+    if _KB_DATABASE_URL:
+        monkeypatch.setenv("KB_DATABASE_URL", _KB_DATABASE_URL)
+    try:
+        admin = psycopg.connect(kb_store.database_url(), connect_timeout=2, autocommit=True)
+    except psycopg.Error:
+        pytest.skip("knowledge-base Postgres is not running (docker compose up -d kb-postgres)")
+    schema = f"kb_test_{uuid.uuid4().hex[:10]}"
+    with admin:
+        admin.execute("CREATE EXTENSION IF NOT EXISTS vector SCHEMA public")
+        admin.execute(f"CREATE SCHEMA {schema}")
+        monkeypatch.setenv("KB_SCHEMA", schema)
+        try:
+            yield schema
+        finally:
+            admin.execute(f"DROP SCHEMA {schema} CASCADE")

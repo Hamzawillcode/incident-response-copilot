@@ -48,6 +48,8 @@ def format_diagnosis(d: dict[str, Any]) -> str:
     if d.get("suggested_next_checks"):
         lines.append("  next checks:")
         lines += [f"    - {c}" for c in d["suggested_next_checks"]]
+    if d.get("references"):
+        lines.append(f"  references:   {', '.join(d['references'])}")
     return "\n".join(lines)
 
 

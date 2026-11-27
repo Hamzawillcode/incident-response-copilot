@@ -14,7 +14,7 @@ from copilot.agents import diagnosis as dx
 from copilot.agents.console import format_step
 from copilot.agents.diagnosis import Diagnosis, build_diagnosis_agent, diagnose, parse_diagnosis
 from copilot.prompts import load_prompt
-from copilot.tools import TOOLS
+from copilot.tools import KB_TOOLS, TOOLS
 
 FINAL = {
     "incident": True, "root_cause_service": "payment", "failure_type": "errors", "confidence": "high",
@@ -215,3 +215,49 @@ def test_transcript_printing():
                        "result": {"status": "ok", "size_bytes": 2048, "error_origins": {"payment :: charge": 6}}})
     assert "OBSERVE get_traces -> ok (2.0 KB)" in out and "payment :: charge" in out
     assert "root cause:   payment" in format_step({"type": "final", "diagnosis": FINAL})
+
+
+# --------------------------------------------------------------------------- #
+# Knowledge mode (Week 3): runbook and postmortem search
+# --------------------------------------------------------------------------- #
+def test_knowledge_mode_adds_the_two_search_tools_and_the_prompt_section():
+    agent = build_diagnosis_agent(model=scripted(FINAL), knowledge=True)
+    assert [t.__name__ for t in agent.tools] == [t.__name__ for t in TOOLS + KB_TOOLS]
+    prompt = agent.instruction(None)
+    assert prompt.startswith(load_prompt("diagnosis")) and prompt.endswith(load_prompt("diagnosis_knowledge"))
+    assert "Knowledge is not evidence" in prompt and "references" in prompt
+
+
+def test_knowledge_prompt_never_mentions_fault_switches():
+    assert "flag" not in load_prompt("diagnosis_knowledge").lower()
+
+
+def test_tool_guard_follows_the_attached_tools():
+    tool = SimpleNamespace(name="search_runbooks")
+    plain = build_diagnosis_agent(model=scripted(FINAL)).before_tool_callback
+    rag = build_diagnosis_agent(model=scripted(FINAL), knowledge=True).before_tool_callback
+    assert plain(tool, {}, SimpleNamespace(state={}))["error"]["type"] == "forbidden_tool"
+    assert rag(tool, {}, SimpleNamespace(state={})) is None
+
+
+def test_investigation_with_knowledge_search_and_references(kb_offline):
+    final = dict(FINAL, references=["kb/runbooks/payment.md"])
+    llm = scripted({"call": "get_service_health", "args": {"minutes": 15}},
+                   {"call": "search_runbooks", "args": {"query": "checkout errors, payment charge failing"}},
+                   final)
+    run = diagnose("checkout errors", agent=build_diagnosis_agent(model=llm, knowledge=True))
+    assert run.error is None and run.diagnosis.references == ["kb/runbooks/payment.md"]
+    kb_step = next(s for s in run.steps if s["type"] == "tool_result" and s["tool"] == "search_runbooks")
+    assert kb_step["result"]["error"]["type"] == "connection"         # knowledge base offline in unit tests
+    assert kb_offline == [True]
+    assert "references:   kb/runbooks/payment.md" in format_step({"type": "final", "diagnosis": final})
+
+
+def test_references_default_to_empty():
+    assert Diagnosis.model_validate(FINAL).references == []
+
+
+def test_transcript_summary_of_a_knowledge_result():
+    out = dx.summarise_result({"status": "ok", "retrieval": "hybrid",
+                               "results": [{"source": "kb/runbooks/payment.md"}, {"source": "kb/runbooks/checkout.md"}]})
+    assert out["retrieval"] == "hybrid" and out["top_results"] == ["kb/runbooks/payment.md", "kb/runbooks/checkout.md"]

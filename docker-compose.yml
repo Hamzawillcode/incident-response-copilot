@@ -1,0 +1,31 @@
+# Copilot-side services (separate from the OpenTelemetry Demo stack).
+#
+#   docker compose up -d kb-postgres        # start the knowledge base
+#   docker compose down                     # stop (data is kept in the named volume)
+#
+# kb-postgres: Postgres 17 with the pgvector extension. It holds the runbook and
+# postmortem chunks (table kb_chunks) and, from Week 4, sessions and incidents.
+# Published on the loopback interface only, on 5433 so it cannot clash with a
+# local Postgres on 5432 (the demo's own astronomy-db uses a random port).
+# The credentials are local-development defaults; override them in .env.
+services:
+  kb-postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    container_name: copilot-kb-postgres
+    environment:
+      POSTGRES_USER: ${KB_POSTGRES_USER:-copilot}
+      POSTGRES_PASSWORD: ${KB_POSTGRES_PASSWORD:-copilot}
+      POSTGRES_DB: ${KB_POSTGRES_DB:-copilot}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - kb-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  kb-postgres-data:

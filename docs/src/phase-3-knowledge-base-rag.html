@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase 3 — Knowledge Base and RAG</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+  :root { --ink:#1d2330; --muted:#5b6475; --line:#d9dee7; --accent:#2f5bd3; --accent-soft:#eaf0ff; --warn:#a25a00; --warn-soft:#fff4e5; --ok:#1f7a45; --ok-soft:#e8f6ee; --bad:#b42318; --bad-soft:#fdecea; --code:#f4f6fa; --purple:#6d3fd6; --purple-soft:#f1ebff; --teal:#0f7b75; --teal-soft:#e4f5f3; }
+  html { background:#fff; }
+  body { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--ink); font-size:10.1pt; line-height:1.47; margin:0; background:#fff; }
+  h1 { font-size:22pt; margin:0 0 6pt; }
+  h2 { font-size:15pt; margin:20pt 0 6pt; padding-bottom:4pt; border-bottom:2px solid var(--accent); break-after:avoid; }
+  h3 { font-size:11.5pt; margin:13pt 0 4pt; break-after:avoid; }
+  p { margin:5pt 0; }
+  ul, ol { margin:4pt 0 6pt; padding-left:18pt; }
+  li { margin:2pt 0; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size:8.4pt; }
+  code { background:var(--code); padding:0.5pt 3pt; border-radius:3px; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:5px; padding:7pt 9pt; white-space:pre-wrap; word-break:break-word; margin:5pt 0 8pt; break-inside:avoid; }
+  pre code { background:none; padding:0; }
+  pre.term { background:#141a26; color:#dfe6f3; border-color:#141a26; }
+  pre.term .a { color:#8fb4ff; } pre.term .o { color:#7fd6a4; } pre.term .x { color:#ffcf70; } pre.term .r { color:#ff9b8f; }
+  table { width:100%; border-collapse:collapse; margin:5pt 0 9pt; font-size:8.9pt; }
+  th, td { border:1px solid var(--line); padding:3.5pt 5pt; text-align:left; vertical-align:top; }
+  th { background:#f1f4f9; font-weight:600; }
+  tr { break-inside:avoid; }
+  figure { margin:8pt 0 12pt; break-inside:avoid; }
+  figcaption { font-size:8.6pt; color:var(--muted); margin-top:3pt; }
+  .page-break { break-before:page; }
+  .cover { height:250mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .kicker { color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; font-size:9.5pt; }
+  .cover h1 { font-size:30pt; line-height:1.1; margin:8pt 0 10pt; }
+  .cover .sub { font-size:13pt; color:var(--muted); max-width:155mm; }
+  .cover table { width:auto; margin-top:22pt; font-size:9.5pt; }
+  .cover td { border:none; padding:2pt 14pt 2pt 0; }
+  .cover td:first-child { color:var(--muted); }
+  .callout { border-left:4px solid var(--accent); background:var(--accent-soft); padding:6pt 9pt; margin:7pt 0; border-radius:0 4px 4px 0; break-inside:avoid; }
+  .callout.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .callout.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .callout.bad { border-color:var(--bad); background:var(--bad-soft); }
+  .callout b:first-child { display:block; margin-bottom:2pt; }
+  .ok { color:var(--ok); font-weight:700; }
+  .pending { color:var(--warn); font-weight:700; }
+  .muted { color:var(--muted); }
+  .toc { columns:2; column-gap:18pt; font-size:9.6pt; }
+  .qa dt { font-weight:700; margin-top:8pt; break-after:avoid; }
+  .qa dd { margin:2pt 0 0 0; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10pt; }
+  .card { border:1px solid var(--line); border-radius:6px; padding:6pt 9pt; break-inside:avoid; }
+  .card h4 { margin:0 0 3pt; font-size:10pt; }
+  svg text { font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Incident Response Copilot · Phase 3 (Week 3)</div>
+  <h1>Giving the copilot a memory</h1>
+  <div class="sub">14 runbooks and 5 past incidents stored in Postgres + pgvector, two new read-only search tools that combine keyword search and meaning search (RAG), and an optional "knowledge mode" for the diagnosis agent.</div>
+  <table>
+    <tr><td>Date</td><td>27 November 2026</td></tr>
+    <tr><td>Stack</td><td>Postgres 17.8 + pgvector 0.8.1 (Docker) · psycopg 3.3 · google-genai 2.34 (<code>gemini-embedding-001</code>) · Google ADK 2.15 · Python 3.14</td></tr>
+    <tr><td>New code</td><td><code>kb/</code>, <code>copilot/kb/</code>, <code>copilot/tools/kb.py</code>, <code>copilot/prompts/diagnosis_knowledge.md</code>, <code>docker-compose.yml</code>, <code>scripts/check_retrieval.py</code></td></tr>
+    <tr><td>Tests</td><td><span class="ok">565 passed</span> (545 unit + 20 against the real Postgres). The 13 live demo tests were skipped because the demo was not running. 151 new tests.</td></tr>
+    <tr><td>Measured</td><td>Keyword search on 28 test queries: <b>hit@3 = 0.93</b>. "checkout errors" returns the checkout runbook <b>first</b> (Week-3 target: top 3)</td></tr>
+    <tr><td>Still to measure</td><td><span class="pending">Gemini embeddings and hybrid search</span>, and agent runs with <code>--knowledge</code>. All three need <code>GOOGLE_API_KEY</code> (section 15)</td></tr>
+  </table>
+</section>
+
+<section class="page-break">
+<h2>Contents</h2>
+<ol class="toc">
+  <li>The idea in one minute</li>
+  <li>What we built</li>
+  <li>Agents and tools this week</li>
+  <li>Architecture</li>
+  <li>The knowledge: runbooks and postmortems</li>
+  <li>From Markdown to searchable chunks</li>
+  <li>Embeddings: turning text into numbers</li>
+  <li>Hybrid search: keyword + vector + RRF</li>
+  <li>Ingestion: incremental and all-or-nothing</li>
+  <li>Never block an investigation</li>
+  <li>Safety: read-only, no leaks</li>
+  <li>Measuring retrieval</li>
+  <li>The agent's knowledge mode</li>
+  <li>Testing and bugs we found</li>
+  <li>Status, how to run it, limitations</li>
+  <li>Interview questions and answers</li>
+</ol>
+
+<h2>1. The idea in one minute</h2>
+<p>In Weeks 1 and 2 the copilot learned to <b>look</b> (read metrics, logs and traces) and to <b>think</b> (a Gemini agent that follows evidence). But it had no <b>memory</b>. A real on-call engineer also asks: "Have we seen this before? What does the runbook say?"</p>
+<p>This week we gave the copilot the team's written knowledge:</p>
+<ul>
+  <li><b>Runbooks</b>: instruction pages, "if you see X, check Y, then do Z". We wrote 14, one per part of the shop.</li>
+  <li><b>Postmortems</b>: write-ups of past incidents, "what happened, why, how we fixed it". We wrote 5 seed examples.</li>
+  <li><b>Search tools</b> the agent can call: <code>search_runbooks</code> and <code>search_postmortems</code>. They find the right page from a plain description of symptoms.</li>
+</ul>
+<p>This pattern is called <b>RAG</b> (Retrieval-Augmented Generation): first <i>retrieve</i> relevant documents, then let the LLM <i>generate</i> its answer using them.</p>
+<div class="callout"><b>Analogy</b>Before, the copilot was a smart doctor with no access to the hospital's files. Now it can search the procedure manual (runbooks) and the patient history of similar cases (postmortems), but it still has to examine <i>this</i> patient (telemetry) before deciding.</div>
+
+<h2>2. What we built</h2>
+<table>
+  <tr><th style="width:34%">File</th><th>What it does</th></tr>
+  <tr><td><code>kb/runbooks/*.md</code> (14), <code>kb/postmortems/*.md</code> (5)</td><td>The knowledge itself: Markdown with YAML front matter. 19 documents, 116 sections.</td></tr>
+  <tr><td><code>docker-compose.yml</code></td><td>Postgres 17 + pgvector (<code>kb-postgres</code>) on <code>127.0.0.1:5433</code>, separate from the demo.</td></tr>
+  <tr><td><code>copilot/kb/documents.py</code></td><td>Reads and validates documents, splits them into one chunk per <code>##</code> section, refuses fault-injection words.</td></tr>
+  <tr><td><code>copilot/kb/embeddings.py</code></td><td>Gemini embeddings (768 numbers per text), batching, retries, a query cache, typed errors.</td></tr>
+  <tr><td><code>copilot/kb/store.py</code></td><td>Database connection (read-only for searches) and the two search queries: keyword and vector.</td></tr>
+  <tr><td><code>copilot/kb/search.py</code></td><td>Hybrid search: runs both queries, merges them with Reciprocal Rank Fusion, groups by document.</td></tr>
+  <tr><td><code>copilot/kb/ingest.py</code></td><td><code>python -m copilot.kb.ingest</code>: loads <code>kb/</code> into Postgres, embedding only what changed.</td></tr>
+  <tr><td><code>copilot/tools/kb.py</code></td><td>The two agent tools, with the same contract as the telemetry tools.</td></tr>
+  <tr><td><code>copilot/prompts/diagnosis_knowledge.md</code></td><td>Extra prompt section used only when the knowledge tools are attached.</td></tr>
+  <tr><td><code>eval/retrieval_queries.yaml</code>, <code>scripts/check_retrieval.py</code></td><td>28 test queries with their correct documents, and the script that scores them.</td></tr>
+  <tr><td><code>tests/test_kb_*.py</code>, <code>tests/kb_fakes.py</code></td><td>138 new tests in new files, plus 13 added to the agent and security tests.</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>3. Agents and tools this week</h2>
+<div class="two">
+  <div class="card"><h4>New agents: none</h4>The guide adds the <b>Knowledge (RAG) agent</b> in Week 4, when the single agent is split into a Coordinator with sub-agents. This week the existing diagnosis agent gets an <b>optional knowledge mode</b> instead: <code>build_diagnosis_agent(knowledge=True)</code> or <code>run_diagnosis.py --knowledge</code>.</div>
+  <div class="card"><h4>New tools: 2 (7 in total)</h4><code>search_runbooks(query, k=4)</code> and <code>search_postmortems(query, k=3)</code>. With the 5 telemetry tools from Weeks 1–2 (<code>get_service_health</code>, <code>get_service_metrics</code>, <code>get_traces</code>, <code>search_logs</code>, <code>query_metrics</code>) the agent has 7 tools in knowledge mode.</div>
+</div>
+<div class="callout"><b>Why keep the default agent unchanged?</b>The guide's evaluation compares "single agent, no RAG" with "single agent + RAG" and "multi-agent + RAG" (an <i>ablation</i>). If RAG were always on, we could never measure what it adds. So knowledge mode is a switch, and the default stays the Week-2 agent.</div>
+
+<h2>4. Architecture</h2>
+<figure>
+<svg viewBox="0 0 700 330" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5b6475"/></marker></defs>
+  <!-- docs -->
+  <rect x="10" y="20" width="140" height="110" rx="8" fill="#fff4e5" stroke="#a25a00"/>
+  <text x="80" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#a25a00">kb/ (Markdown)</text>
+  <text x="80" y="62" text-anchor="middle" font-size="10.5">14 runbooks</text>
+  <text x="80" y="80" text-anchor="middle" font-size="10.5">5 postmortems</text>
+  <text x="80" y="104" text-anchor="middle" font-size="9.5" fill="#5b6475">reviewed like code</text>
+  <!-- ingest -->
+  <rect x="190" y="20" width="170" height="110" rx="8" fill="#eaf0ff" stroke="#2f5bd3"/>
+  <text x="275" y="40" text-anchor="middle" font-size="12" font-weight="700" fill="#2f5bd3">ingest.py</text>
+  <text x="275" y="60" text-anchor="middle" font-size="10">1. validate (no leaks)</text>
+  <text x="275" y="76" text-anchor="middle" font-size="10">2. split into sections</text>
+  <text x="275" y="92" text-anchor="middle" font-size="10">3. embed only changes</text>
+  <text x="275" y="108" text-anchor="middle" font-size="10">4. one transaction</text>
+  <!-- gemini -->
+  <rect x="400" y="20" width="140" height="50" rx="8" fill="#fff" stroke="#6d3fd6"/>
+  <text x="470" y="41" text-anchor="middle" font-size="11" font-weight="700">Gemini embeddings</text>
+  <text x="470" y="58" text-anchor="middle" font-size="9.5" fill="#5b6475">768 numbers per text</text>
+  <!-- postgres -->
+  <rect x="190" y="175" width="230" height="110" rx="8" fill="#e4f5f3" stroke="#0f7b75"/>
+  <text x="305" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#0f7b75">Postgres + pgvector</text>
+  <text x="305" y="215" text-anchor="middle" font-size="10">table kb_chunks: 116 sections</text>
+  <text x="305" y="233" text-anchor="middle" font-size="10">text · tsv (keywords) · embedding</text>
+  <text x="305" y="251" text-anchor="middle" font-size="10">metadata · content_hash · model</text>
+  <text x="305" y="272" text-anchor="middle" font-size="9.5" fill="#5b6475">127.0.0.1:5433, separate from the demo</text>
+  <!-- tools -->
+  <rect x="460" y="175" width="230" height="110" rx="8" fill="#eaf0ff" stroke="#2f5bd3"/>
+  <text x="575" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#2f5bd3">search tools (read-only)</text>
+  <text x="575" y="215" text-anchor="middle" font-size="10">keyword query (full text)</text>
+  <text x="575" y="231" text-anchor="middle" font-size="10">vector query (cosine)</text>
+  <text x="575" y="247" text-anchor="middle" font-size="10">RRF fusion → top k documents</text>
+  <text x="575" y="270" text-anchor="middle" font-size="9.5" fill="#5b6475">search_runbooks · search_postmortems</text>
+  <!-- agent -->
+  <rect x="580" y="20" width="110" height="110" rx="8" fill="#f1ebff" stroke="#6d3fd6"/>
+  <text x="635" y="45" text-anchor="middle" font-size="11.5" font-weight="700" fill="#6d3fd6">Diagnosis</text>
+  <text x="635" y="61" text-anchor="middle" font-size="11.5" font-weight="700" fill="#6d3fd6">agent</text>
+  <text x="635" y="82" text-anchor="middle" font-size="9.5">knowledge=True</text>
+  <text x="635" y="98" text-anchor="middle" font-size="9.5">7 tools</text>
+  <!-- arrows -->
+  <line x1="152" y1="75" x2="188" y2="75" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="362" y1="45" x2="398" y2="45" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="275" y1="132" x2="275" y2="173" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="458" y1="230" x2="422" y2="230" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="635" y1="132" x2="635" y2="173" stroke="#5b6475" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="643" y="158" font-size="9.5" fill="#5b6475">query</text>
+  <path d="M540,175 C530,120 500,90 500,72" fill="none" stroke="#6d3fd6" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="546" y="150" font-size="9.5" fill="#6d3fd6">embed query</text>
+  <text x="200" y="314" font-size="9.5" fill="#5b6475">Without a Gemini key the dashed path is skipped: text is stored and searched by keywords only.</text>
+</svg>
+<figcaption>Figure 1. Week 3. Writing (left) happens offline through <code>ingest.py</code>. Reading (right) happens during an investigation through two read-only tools.</figcaption>
+</figure>
+</section>
+
+<section class="page-break">
+<h2>5. The knowledge: runbooks and postmortems</h2>
+<h3>Runbooks (14)</h3>
+<p>One per part of the shop: checkout, payment, product-catalog, cart, recommendation, ad, kafka consumers, shipping and quote, email, currency, frontend/proxy/images, traffic spike, plus two general ones: <b>"triage: symptom vs. cause"</b> (who calls whom) and <b>"known noise and false alarms"</b>. Each has the same sections: Overview, Symptoms, Diagnosis, Common causes, Remediation, Verification.</p>
+<pre><code>---
+services: [payment]
+tags: [charge, card, credit card, transaction, billing, payment failed, unreachable, provider]
+---
+# Payment service: charge failures and outages
+
+## Symptoms
+- Payment logs its failures as warnings, for example "Payment request failed ...".
+  Search with `level="warn"`, not `level="error"`.
+...</code></pre>
+<div class="callout warn"><b>Lesson: check every name against the real system</b>A runbook that names a wrong metric sends the agent to a query that returns nothing, and "no data" can look like "nothing is wrong" (the Week-2 trap). So every metric, span and attribute name was checked against the demo's source code or our recorded data. Example: the product ID on spans is <code>demo.product.id</code>, not <code>app.product.id</code> as one might guess.</div>
+
+<h3>Postmortems (5, made up)</h3>
+<table>
+  <tr><th>Past incident</th><th>Root cause</th><th>Why it is in the set</th></tr>
+  <tr><td>Card payments rejected after a config change</td><td>payment (errors)</td><td>"Seen before" for the payment fault</td></tr>
+  <tr><td>Recommendation memory leak from an unbounded cache</td><td>recommendation (resource)</td><td>"Seen before" for the cache fault</td></tr>
+  <tr><td>Order messages piling up in kafka</td><td>kafka (queue lag)</td><td>"Seen before" for the queue fault</td></tr>
+  <tr><td>Checkout failing because the cart store was down</td><td>valkey-cart (unavailable)</td><td>Related but <i>different</i>: teaches "most errors ≠ cause"</td></tr>
+  <tr><td>Error-ratio alert with no real incident</td><td>none</td><td>Supports the "no incident" answer</td></tr>
+</table>
+<p>Several faults we can inject have <b>no</b> matching postmortem (product-catalog, traffic flood, payment unreachable, ad CPU/GC, email leak, slow images, shipping delay). In Week 5 we can therefore report accuracy separately for "seen before" and "runbook only" faults. That separation is honest: a matching postmortem makes a fault easier, and we want to see by how much.</p>
+
+<h2>6. From Markdown to searchable chunks</h2>
+<p>We do not store whole files. Each <code>##</code> section becomes one <b>chunk</b>:</p>
+<pre class="term">runbook/payment#00-overview        269 chars
+runbook/payment#01-symptoms        453 chars
+runbook/payment#02-diagnosis       833 chars
+runbook/payment#03-common-causes   316 chars
+runbook/payment#04-remediation     313 chars
+runbook/payment#05-verification    154 chars</pre>
+<ul>
+  <li><b>Why sections?</b> "Symptoms" or "Remediation" is exactly the unit someone needs. A whole file would dilute the match and waste tokens. Fixed 500-character windows would cut a numbered procedure in half.</li>
+  <li><b>Context travels with the chunk.</b> What gets embedded is <i>title + heading + text</i>, for example "Payment service: charge failures and outages / Remediation / ...". A section that just says "Roll back the change" means nothing without its title.</li>
+  <li>Long sections (over 1,500 characters) are split at blank lines, never inside a code block. Every chunk has a stable ID and a <b>content hash</b>, which drives incremental updates (section 9).</li>
+</ul>
+</section>
+
+<section class="page-break">
+<h2>7. Embeddings: turning text into numbers</h2>
+<p>An <b>embedding</b> is a list of numbers (here 768) that represents the <i>meaning</i> of a text. Texts with similar meaning get similar lists, even when they share no words. "Customers cannot pay" and "payment charge failures" end up close together.</p>
+<table>
+  <tr><th style="width:30%">Choice</th><th>Why</th></tr>
+  <tr><td><code>gemini-embedding-001</code></td><td>Same provider as the agent's LLM, free tier, configurable (<code>KB_EMBEDDING_MODEL</code>).</td></tr>
+  <tr><td>Two task types</td><td>Sections use <code>RETRIEVAL_DOCUMENT</code>, questions use <code>RETRIEVAL_QUERY</code>. The model is trained for this "short question vs. long paragraph" case.</td></tr>
+  <tr><td>768 dimensions</td><td>The default is 3072. The model is trained so a shorter prefix still works (Matryoshka). 768 is 4 times smaller and fits pgvector's 2,000-dimension index limit. Shortened vectors are re-normalised to length 1.</td></tr>
+  <tr><td>Model stored per row</td><td>Vectors from two different models are not comparable. Search only compares rows from the query's model, and ingestion re-embeds when the model changes.</td></tr>
+  <tr><td>Batches and retries</td><td>Ingestion sends 50 texts per request and retries rate limits (back-off of 2, 4 and 8 s). Query embedding makes <b>one</b> attempt with a 10 s timeout (an incident must not wait) and keeps a 256-entry cache.</td></tr>
+</table>
+
+<h2>8. Hybrid search: keyword + vector + RRF</h2>
+<p>Each tool call runs <b>two searches</b> and merges them:</p>
+<div class="two">
+  <div class="card"><h4>Keyword search (Postgres full text)</h4>Finds exact words: service names, operation names, error messages. Words are stemmed ("errors" → "error"), stop words dropped, and any word may match (OR), because a symptom description should not need every word. Words in the title and headings count most.</div>
+  <div class="card"><h4>Vector search (pgvector)</h4>Embeds the query and finds the sections whose embeddings are closest (cosine distance, <code>&lt;=&gt;</code>). Finds paraphrases. With 116 rows an exact scan takes about a millisecond, so no approximate index is needed yet.</div>
+</div>
+<h3>Merging with Reciprocal Rank Fusion (RRF)</h3>
+<p>The two searches give scores on different scales (a text-rank number vs. a similarity between −1 and 1), so we ignore the scores and use only the <b>ranks</b>:</p>
+<pre><code>score(section) = sum over both lists of  1 / (60 + rank in that list)</code></pre>
+<table>
+  <tr><th>Section</th><th>Keyword rank</th><th>Vector rank</th><th>RRF score</th></tr>
+  <tr><td>payment#02-diagnosis</td><td>1</td><td>2</td><td>1/61 + 1/62 = <b>0.0325</b> (found by both: wins)</td></tr>
+  <tr><td>checkout#01-symptoms</td><td>—</td><td>1</td><td>1/61 = 0.0164</td></tr>
+  <tr><td>cart#03-common-causes</td><td>2</td><td>—</td><td>1/62 = 0.0161</td></tr>
+</table>
+<p class="muted">60 is the constant from the original RRF paper (Cormack et al., 2009). It stops a single top hit from one list from dominating.</p>
+<p>Then results are <b>grouped by document</b>: the agent gets k different runbooks, each with its 2 best sections, not 4 sections of the same file.</p>
+<h3>Real output: <code>search_runbooks("checkout errors", k=3)</code> (keyword mode, no key yet)</h3>
+<pre><code>{"status": "ok", "kind": "runbook", "query": "checkout errors", "retrieval": "keyword", "result_count": 3,
+ "results": [
+  {"rank": 1, "source": "kb/runbooks/checkout.md", "title": "Checkout: orders failing or slow",
+   "score": 0.01639, "services": ["checkout"], "matched_by": ["keyword"],
+   "sections": [{"heading": "Symptoms",  "text": "- `POST /api/checkout` errors in `frontend` ..."},
+                {"heading": "Diagnosis", "text": "1. Run `get_traces(service=\"checkout\", errors_only=True)` ..."}]},
+  {"rank": 2, "source": "kb/runbooks/frontend.md", "score": 0.01493, ...},
+  {"rank": 3, "source": "kb/runbooks/known-noise-and-false-alarms.md", "score": 0.01471, ...}],
+ "note": "Background knowledge written before this incident. It is not evidence about the current incident: ..."}</code></pre>
+<p class="muted">0.01639 = 1/61: a section ranked first in one list. frontend's best section was only 7th (0.01493 = 1/67), because the six sections ranked above it all belonged to checkout. Grouping by document lets frontend still appear as the second document.</p>
+</section>
+
+<section class="page-break">
+<h2>9. Ingestion: incremental and all-or-nothing</h2>
+<pre class="term"><span class="a">$ python -m copilot.kb.ingest</span>
+note: no Gemini key configured (GOOGLE_API_KEY in .env), so sections are stored without
+embeddings and searches run keyword-only. Run ingestion again after adding the key.
+Ingested 19 documents, 116 sections. Embedding model: none (keyword-only)
+  inserted 116, updated 0, unchanged 0, deleted 0, embedded 0
+  stored postmortems: 5 documents, 35 sections, 0 with embeddings
+  stored runbooks: 14 documents, 81 sections, 0 with embeddings
+<span class="a">$ python -m copilot.kb.ingest</span>      <span class="muted"># second run: nothing changed, nothing to do</span>
+  inserted 0, updated 0, unchanged 116, deleted 0, embedded 0</pre>
+<ul>
+  <li><b>Incremental:</b> each section's content hash is compared with the stored one. Only new or changed sections are embedded, so editing one runbook section costs one API call, not 116.</li>
+  <li><b>All-or-nothing:</b> embeddings are computed <i>before</i> any write, and all writes happen in one transaction. If the API fails halfway (quota), the database is exactly as before (tested).</li>
+  <li><b>Text first, vectors later:</b> today the text is stored without vectors. After adding the key, re-running ingestion embeds all 116 sections once.</li>
+  <li><b>Deleted sections disappear:</b> rows whose section no longer exists are removed in the same transaction.</li>
+</ul>
+
+<h2>10. Never block an investigation</h2>
+<p>The knowledge base is a helper. If it fails, the investigation must continue with telemetry.</p>
+<table>
+  <tr><th style="width:38%">Situation</th><th>What the tool does</th></tr>
+  <tr><td>No Gemini key</td><td>Keyword search, <code>retrieval: "keyword"</code></td></tr>
+  <tr><td>Embedding API fails during a search (quota, timeout)</td><td>Keyword search plus a <code>warnings</code> entry</td></tr>
+  <tr><td>Key present, but sections not yet embedded with this model</td><td>Keyword search plus a warning. It does not even embed the query (no wasted API call).</td></tr>
+  <tr><td>Database down</td><td><code>status: "error"</code>, type <code>connection</code>, with the command to start it. The prompt tells the agent to carry on with telemetry.</td></tr>
+  <tr><td>Knowledge base never ingested</td><td><code>not_initialized</code>, with the ingest command</td></tr>
+</table>
+<p class="muted">For measurements, the explicit modes <code>hybrid</code> and <code>vector</code> raise an error instead of quietly falling back, so a fallback can never distort a result.</p>
+
+<h2>11. Safety: read-only, no leaks</h2>
+<table>
+  <tr><th style="width:30%">Rule</th><th>How it is enforced</th></tr>
+  <tr><td>No answers in the knowledge</td><td>Ingestion refuses any document line with fault-injection words (same patterns as the telemetry filters) and names <code>file:line</code>. A test scans every file for an even broader pattern (the word "flag" appears nowhere). The tools also refuse such queries and scrub their output.</td></tr>
+  <tr><td>Searches cannot write</td><td>Search sessions are read-only on the server (<code>default_transaction_read_only=on</code>) with a 5 s statement timeout. A test checks that a <code>DELETE</code> fails. Only <code>ingest.py</code> contains write SQL, and a test checks that too.</td></tr>
+  <tr><td>No SQL injection</td><td>All values are query parameters. <code>plainto_tsquery</code> ignores search-operator syntax. Hostile queries (<code>'; DROP TABLE ...</code>, operators) are tested against the real database.</td></tr>
+  <tr><td>Knowledge is not evidence</td><td>Every result carries a <code>note</code> saying so, and the prompt forbids citing documents as evidence.</td></tr>
+  <tr><td>Secrets</td><td>The database password is hidden in error messages (<code>copilot:***@localhost:5433</code>). Gemini API keys are removed from embedding error messages.</td></tr>
+</table>
+</section>
+
+<section class="page-break">
+<h2>12. Measuring retrieval</h2>
+<p>The guide's Week-3 target: <i>searching "checkout errors" returns the right runbook in the top 3</i>. We went further and wrote 28 test queries (<code>eval/retrieval_queries.yaml</code>), each listing the documents that count as correct: 20 that use words from the right document, and 8 <b>paraphrases</b> that describe the problem in other words.</p>
+<pre class="term"><span class="a">$ python scripts/check_retrieval.py --mode keyword</span>
+<span class="r">MISS</span> [runb/parap] rank=4  'customers cannot pay for their order'
+       expected ['payment'], got ['checkout', 'kafka-consumers', 'email']
+<span class="r">MISS</span> [runb/parap] rank=5  'the suggestions service uses more and more RAM'
+       expected ['recommendation'], got ['cart', 'payment', 'ad']
+
+mode=keyword retrieval=keyword
+  all        n=28  hit@1=0.86  hit@3=0.93  MRR=0.90
+  keyword    n=20  hit@1=1.00  hit@3=1.00  MRR=1.00
+  paraphrase n=8   hit@1=0.50  hit@3=0.75  MRR=0.66
+
+<span class="o">Week-3 check: 'checkout errors' -> checkout runbook in the top 3: PASS</span></pre>
+<ul>
+  <li><b>hit@3</b> = share of queries whose correct document is in the top 3. <b>MRR</b> (mean reciprocal rank) = average of 1/rank of the first correct document (1.0 means always first).</li>
+  <li><b>What the misses show:</b> keyword search cannot connect "pay" with "payment charge" or "RAM" with "memory". That is exactly the gap meaning search (embeddings) should close, and the reason for a hybrid design.</li>
+</ul>
+<div class="callout warn"><b>Honest limits</b>I wrote both the documents and the queries, after reading the documents, so the keyword-style score of 1.00 is optimistic. This is a <b>regression check</b> (does a change make search worse?), not a benchmark. The hybrid numbers do not exist yet because they need the Gemini key. Do not quote any hybrid number until <code>check_retrieval.py --mode hybrid</code> has run.</div>
+
+<h2>13. The agent's knowledge mode</h2>
+<p><code>build_diagnosis_agent(knowledge=True)</code> attaches the 2 search tools and appends a short prompt section (<code>diagnosis_knowledge.md</code>):</p>
+<ul>
+  <li>Search <b>after</b> the overview, once you know the symptoms. One or two searches are enough.</li>
+  <li>Use runbooks to decide what to check next. Treat a similar postmortem as a <b>hypothesis</b>: the same symptoms can have a different cause this time.</li>
+  <li><b>Knowledge is not evidence.</b> Every evidence item must still come from metrics, traces or logs about <i>this</i> incident. Times and IDs in postmortems are from the past.</li>
+  <li>List the documents used in the new <code>references</code> field of the answer.</li>
+</ul>
+<p>The tool guard follows the attached tools: in default mode a call to <code>search_runbooks</code> is refused as an unknown tool. Both calls still count against the 15-call budget.</p>
+</section>
+
+<section class="page-break">
+<h2>14. Testing and bugs we found</h2>
+<table>
+  <tr><th style="width:26%">Test file</th><th>What it checks</th></tr>
+  <tr><td><code>test_kb_documents.py</code> (46)</td><td>Front matter, sections, Overview chunk, code blocks never split, hashes change only for the edited section, malformed documents rejected with the file name, fault-injection words refused with the line number. On the real <code>kb/</code>: 10–15 runbooks, 5 postmortems, required sections, only real service names.</td></tr>
+  <tr><td><code>test_kb_embeddings.py</code> (25)</td><td>A fake google-genai client: batches of 50, task types, 768 dimensions, normalisation, cache, retries for documents but not queries, typed errors, API key removed from messages.</td></tr>
+  <tr><td><code>test_kb_search.py</code> (19)</td><td>RRF arithmetic, grouping, truncation, every fallback path, explicit modes raising, read-only connection.</td></tr>
+  <tr><td><code>test_kb_tools.py</code> (28)</td><td>Tool contract: validation before any database access, refused queries not echoed, typed errors, output scrubbed even if a bad document slipped through.</td></tr>
+  <tr><td><code>test_kb_db.py</code> (20, real Postgres)</td><td>Ingestion is idempotent and incremental; a failed embedding run writes nothing; the guide's two checks; at least 90 % hit@3 on keyword-style queries; hostile queries; pgvector path with an offline embedder; models never mixed; read-only session.</td></tr>
+</table>
+<p>Unit tests can never call Gemini or the database: a shared fixture replaces the embedder and blocks connections. Database tests each run in a <b>private schema</b> that is dropped afterwards, and they are skipped automatically when Postgres is not running.</p>
+<dl class="qa">
+  <dt>1. A "rebuild" that could have deleted the real knowledge base</dt>
+  <dd>The SQL first used the bare table name <code>kb_chunks</code> and relied on Postgres's search path. In a test schema without the table yet, <code>DROP TABLE IF EXISTS kb_chunks</code> would have found <code>public.kb_chunks</code> through the search path and dropped the <b>real</b> table. Found while designing the test fixture. Every statement now names <code>&lt;schema&gt;.kb_chunks</code>, and a test covers rebuild in a private schema.</dd>
+  <dt>2. A circular import</dt>
+  <dd><code>copilot.tools</code> imports the new tool, the tool imports <code>copilot.kb</code>, and <code>copilot.kb</code> imports <code>copilot.tools</code> (filters, settings). Fix: the tool imports <code>copilot.kb</code> when it is called, not at module load. Checked by importing every module first, in every order.</dd>
+  <dt>3. Tests that tested nothing</dt>
+  <dd>One database test edited "Restart payment" in a copy of the runbook, but the text says "restart payment" (lower case), so nothing changed and the test failed for the wrong reason. The test now asserts that its own edit really changed the file. Another test's pattern <code>%false-alarm%</code> also matched the runbook <code>known-noise-and-false-alarms.md</code>. Lesson: a test needs a check that its setup worked.</dd>
+  <dt>4. Wrong attribute name (caught before it shipped)</dt>
+  <dd>The product-catalog runbook was going to say <code>app.product.id</code>. The demo source uses <code>demo.product.id</code>. A runbook with the wrong name would have sent the agent to an empty query.</dd>
+</dl>
+</section>
+
+<section class="page-break">
+<h2>15. Status, how to run it, limitations</h2>
+<div class="callout warn"><b>Honest status</b>Built and tested: 565 tests passed (545 unit + 20 against the real Postgres). Keyword search is measured: the Week-3 target is met ("checkout errors" puts the checkout runbook first). <b>Not yet done</b>, because no Gemini key was configured: embeddings, the hybrid measurement and agent runs with <code>--knowledge</code>. Do not quote hybrid or agent accuracy numbers until those runs exist.</div>
+<h3>Run it yourself</h3>
+<ol>
+  <li><code>docker compose up -d kb-postgres</code> starts Postgres + pgvector (loopback only, port 5433).</li>
+  <li><code>.venv/bin/python -m copilot.kb.ingest</code> loads the 19 documents. Without a key it stores text only.</li>
+  <li><code>.venv/bin/python scripts/check_retrieval.py -v</code> shows the top 3 for all 28 queries.</li>
+  <li>Add <code>GOOGLE_API_KEY</code> to <code>.env</code>, re-run ingestion (all 116 sections are embedded once), then run <code>check_retrieval.py --mode hybrid</code> and compare with keyword mode.</li>
+  <li>With the demo running and a fault on: <code>run_diagnosis.py --knowledge --runs 5</code> vs. <code>run_diagnosis.py --runs 5</code>. That is a first look at what RAG adds.</li>
+</ol>
+<h3>Limitations (known, planned)</h3>
+<ul>
+  <li>The postmortems are invented seed data, and the query set is self-written (section 12).</li>
+  <li>No separate Knowledge agent yet (Week 4), and no automatic "write a postmortem after each incident" (Week 4 Action agent, after human approval).</li>
+  <li>The read-only setting is a session default. A dedicated read-only database role is the Week-6 hardening for Cloud SQL.</li>
+  <li>Keyword ranking has no word-rarity weighting (BM25-style IDF). Title weighting compensates on this small corpus. Revisit if the knowledge base grows.</li>
+</ul>
+</section>
+
+<section class="page-break">
+<h2>16. Interview questions and answers</h2>
+<dl class="qa">
+  <dt>What is RAG and why does an incident copilot need it?</dt>
+  <dd>Retrieval-Augmented Generation: search your own documents first, then let the LLM answer with what it found. The fix for many incidents is already written down in a runbook or an old postmortem, but nobody remembers where. RAG makes that team knowledge available to the agent in seconds.</dd>
+  <dt>Why hybrid search instead of only vectors?</dt>
+  <dd>They fail differently. Keyword search is precise on exact names (<code>valkey-cart</code>, <code>oteldemo.PaymentService/Charge</code>) but misses paraphrases: my measurement shows paraphrase hit@3 of 0.75 vs. 1.00 for queries that share words. Vector search handles paraphrases but is weaker on exact identifiers and harder to explain. RRF combines the two using only ranks, so no score calibration is needed.</dd>
+  <dt>How did you chunk the documents?</dt>
+  <dd>One chunk per <code>##</code> section, with the title and heading added to the embedded text. Sections are the natural unit (Symptoms, Diagnosis, Remediation), so the agent gets complete procedures rather than fragments. Long sections are split at paragraph boundaries, never inside code.</dd>
+  <dt>How do you keep embeddings in sync with the documents?</dt>
+  <dd>A content hash per section. Ingestion embeds only new or changed sections, stores the model name per row, re-embeds when the model changes, and writes everything in one transaction after the embedding calls succeed. An unchanged knowledge base costs zero API calls, and a failed run changes nothing.</dd>
+  <dt>What if the embedding API is down during an incident?</dt>
+  <dd>The search degrades to keyword-only and says so in <code>warnings</code>. If the whole database is down, the tool returns a typed error and the agent continues with telemetry. The knowledge base helps, but it must never block an investigation.</dd>
+  <dt>Couldn't the knowledge base leak the answer, like the feature flags in telemetry?</dt>
+  <dd>Yes, if a runbook said "switch off the payment-failure flag". So there are three layers: ingestion refuses documents with fault-injection words, a test scans every file for an even broader pattern, and the tools refuse such queries and scrub their output. Separately, I recorded which faults have a similar postmortem so the evaluation can report "seen before" and "never seen" faults separately.</dd>
+  <dt>Isn't it cheating to have a postmortem that matches the injected fault?</dt>
+  <dd>Real teams do have history, and measuring how much it helps is the point of the RAG ablation. What would be wrong is hiding it. That is why the overlap is documented, some faults have no postmortem, one postmortem is deliberately a lookalike with a different cause, and knowledge can never count as evidence.</dd>
+  <dt>How do you make sure the search tool cannot change data?</dt>
+  <dd>The search session is read-only on the database server, with a statement timeout. Only the ingestion module contains write SQL, which a test enforces. All values are bound parameters, and I tested hostile input against the real database.</dd>
+  <dt>Why pgvector and not a dedicated vector database?</dt>
+  <dd>The copilot already needs Postgres for sessions and incidents (Week 4). pgvector adds vector search to the same database: one system to run, real transactions across text and vectors, and SQL filters (kind, model) in the same query. At 116 rows an exact scan is enough. I would add an HNSW index above about 10,000 rows.</dd>
+  <dt>How did you measure retrieval quality, and what are the limits?</dt>
+  <dd>28 labelled queries, reporting hit@1, hit@3 and MRR, split into keyword-style and paraphrase queries. Keyword-only today: hit@3 = 0.93 overall, 1.00 vs. 0.75 for the two groups. The limit is that I wrote both the documents and the queries, so this is a regression check, not an unbiased benchmark. The hybrid numbers wait for the API key.</dd>
+  <dt>What changes for a real customer?</dt>
+  <dd>Ingest their runbooks and postmortems (Confluence or Git exports), keep the same chunking, run my query set plus questions from their own past incidents, and give the search tool a read-only database role. Their incident history becomes the evaluation set.</dd>
+</dl>
+
+<h3>Next: Week 4</h3>
+<p>Split the single agent into a Coordinator with Triage, Knowledge (these two tools), Diagnosis, Reviewer and Action sub-agents; add human approval for actions, Postgres-backed sessions (same database) and agent tracing.</p>
+</section>
+
+</body>
+</html>

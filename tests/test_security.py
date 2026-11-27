@@ -17,11 +17,15 @@ from pathlib import Path
 import httpx
 import pytest
 
-from copilot.tools import TOOLS, filters, get_traces, query_metrics, search_logs
+from copilot.tools import (
+    KB_TOOLS, TOOLS, filters, get_traces, query_metrics, search_logs, search_postmortems, search_runbooks,
+)
 from tests.conftest import fixture_names, load_fixture
 
 LEAK = re.compile(r"flag|ofrep|openfeature|" + "|".join(filters.FLAG_KEYS), re.IGNORECASE)
 TOOLS_DIR = Path(__file__).resolve().parent.parent / "copilot" / "tools"
+KB_QUERY_MODULES = [Path(__file__).resolve().parent.parent / "copilot" / "kb" / name
+                    for name in ("store.py", "search.py", "embeddings.py")] + [TOOLS_DIR / "kb.py"]
 ALL_FIXTURES = fixture_names("prometheus") + fixture_names("opensearch") + fixture_names("jaeger")
 
 
@@ -90,6 +94,9 @@ def test_tools_never_raise_on_hostile_input(failing, value):
         get_traces(service=value, operation=value, errors_only=value, minutes=value, limit=value,
                    min_duration_ms=value, trace_id=value),
         get_traces(service="checkout", operation=value),
+        search_runbooks(value, value),
+        search_runbooks("checkout errors", value),
+        search_postmortems(value),
     ):
         assert isinstance(result, dict) and result["status"] in ("ok", "no_data", "error")
         json.dumps(result, default=str)
@@ -101,7 +108,7 @@ def test_tools_never_raise_on_hostile_input(failing, value):
 SIMPLE = {str, int, bool, float, type(None)}
 
 
-@pytest.mark.parametrize("tool", TOOLS, ids=lambda t: t.__name__)
+@pytest.mark.parametrize("tool", TOOLS + KB_TOOLS, ids=lambda t: t.__name__)
 def test_tool_signatures_use_only_json_friendly_parameters(tool):
     hints = typing.get_type_hints(tool)
     assert hints.pop("return") == dict[str, typing.Any]
@@ -154,3 +161,25 @@ def test_safe_url():
     from copilot.tools._http import safe_url
     assert safe_url("http://u:p@h:1/x") == "http://***@h:1/x"
     assert safe_url("http://h:1/x") == "http://h:1/x"
+
+
+# --------------------------------------------------------------------------- #
+# Knowledge base (Week 3): the search path cannot write
+# --------------------------------------------------------------------------- #
+_SQL_WRITE = re.compile(r"\b(INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|DROP\s|CREATE\s|ALTER\s|TRUNCATE\b|GRANT\b)")
+
+
+@pytest.mark.parametrize("path", KB_QUERY_MODULES, ids=lambda p: p.name)
+def test_query_time_knowledge_base_code_contains_no_write_sql(path):
+    """Writes live only in copilot/kb/ingest.py; searches run in a read-only session as well."""
+    match = _SQL_WRITE.search(path.read_text())
+    assert match is None, f"{path.name}: {match.group(0)!r}"
+
+
+def test_knowledge_tools_open_read_only_sessions(monkeypatch):
+    from tests.kb_fakes import FakeKb, candidate
+
+    fake = FakeKb(keyword=[candidate("kb/runbooks/payment.md")]).install(monkeypatch)
+    search_runbooks("payment errors")
+    search_postmortems("payment errors")
+    assert fake.connections == [True, True]

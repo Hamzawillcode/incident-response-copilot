@@ -1,0 +1,41 @@
+# Retrieval check for the knowledge base (scripts/check_retrieval.py, tests/test_kb_db.py).
+#
+# Each query lists the documents (file stems) that count as a correct answer.
+# style: keyword    = shares words with the right document (service names, symptoms)
+#        paraphrase = describes the problem in other words; needs semantic (vector) search
+#
+# Honest limits: these queries were written by the same person who wrote the documents,
+# after reading them. They catch regressions and show keyword vs. hybrid differences;
+# they are not an unbiased benchmark of retrieval quality.
+
+runbook:
+  - {query: "checkout errors", expect: [checkout], style: keyword}               # Week-3 done criterion (top 3)
+  - {query: "payment charge errors", expect: [payment], style: keyword}          # guide's Week-3 test (first)
+  - {query: "product page returns 500 for a single product", expect: [product-catalog], style: keyword}
+  - {query: "slow database queries and lock waits behind product lookups", expect: [product-catalog], style: keyword}
+  - {query: "recommendation latency rising and memory growing", expect: [recommendation], style: keyword}
+  - {query: "orders topic consumers falling behind, backlog growing", expect: [kafka-consumers], style: keyword}
+  - {query: "sudden flood of requests to the home page", expect: [traffic-spike], style: keyword}
+  - {query: "product images load slowly", expect: [frontend], style: keyword}
+  - {query: "international shipping quotes are slow", expect: [shipping-quote], style: keyword}
+  - {query: "ad service high cpu and garbage collection pauses", expect: [ad], style: keyword}
+  - {query: "cart valkey connection refused", expect: [cart], style: keyword}
+  - {query: "email service memory keeps increasing", expect: [email], style: keyword}
+  - {query: "currency conversion failures", expect: [currency], style: keyword}
+  - {query: "which service is the root cause and which is only a symptom", expect: [triage-symptom-vs-cause], style: keyword}
+  - {query: "alert fired but no users are affected", expect: [known-noise-and-false-alarms], style: keyword}
+  - {query: "customers cannot pay for their order", expect: [payment], style: paraphrase}
+  - {query: "shoppers get an error when they try to buy", expect: [checkout, payment], style: paraphrase}
+  - {query: "site sluggish after a campaign brought many more visitors", expect: [traffic-spike], style: paraphrase}
+  - {query: "fraud checks complete very late", expect: [kafka-consumers], style: paraphrase}
+  - {query: "the suggestions service uses more and more RAM", expect: [recommendation], style: paraphrase}
+
+postmortem:
+  - {query: "payment charges rejected after a configuration change", expect: [2026-03-14-payment-charges-rejected], style: keyword}
+  - {query: "checkout failing because the cart store was down", expect: [2026-08-07-cart-store-unavailable], style: keyword}
+  - {query: "order messages piling up in kafka, consumers lagging", expect: [2026-06-19-orders-queue-backlog], style: keyword}
+  - {query: "memory leak in the recommendation cache", expect: [2026-05-02-recommendation-cache-memory-leak], style: keyword}
+  - {query: "error ratio alert with no real incident", expect: [2026-09-23-false-alarm-error-ratio], style: keyword}
+  - {query: "a third of card transactions declined", expect: [2026-03-14-payment-charges-rejected], style: paraphrase}
+  - {query: "nobody could place orders because shopping carts were unreachable", expect: [2026-08-07-cart-store-unavailable], style: paraphrase}
+  - {query: "the night alarm turned out to be nothing", expect: [2026-09-23-false-alarm-error-ratio], style: paraphrase}
