@@ -28,6 +28,8 @@ sys.path.insert(0, str(ROOT))
 import yaml  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
+from copilot.kb import embeddings  # noqa: E402
+from copilot.kb.embeddings import EmbeddingError  # noqa: E402
 from copilot.kb.search import MODES, SearchError, search  # noqa: E402
 from copilot.kb.store import StoreError  # noqa: E402
 
@@ -36,6 +38,12 @@ QUERIES = ROOT / "eval" / "retrieval_queries.yaml"
 
 def evaluate(mode: str, k: int = 3, queries_file: Path = QUERIES) -> dict:
     spec = yaml.safe_load(queries_file.read_text())
+    if mode != "keyword":  # embed all queries up front, batched and retried, so rate limits cannot skew results
+        embedder = embeddings.make_embedder()
+        if embedder is not None and hasattr(embedder, "warm_queries"):
+            embedder.on_wait = lambda seconds, why: print(f"  embedding API: {why}, waiting {seconds:.0f}s",
+                                                          file=sys.stderr, flush=True)
+            embedder.warm_queries([item["query"] for items in spec.values() for item in items])
     rows, retrievals = [], set()
     for kind, items in spec.items():
         for item in items:
@@ -71,7 +79,7 @@ def main() -> int:
 
     try:
         report = evaluate(args.mode, args.k)
-    except (StoreError, SearchError) as exc:
+    except (StoreError, SearchError, EmbeddingError) as exc:
         print(f"error: {exc.message}", file=sys.stderr)
         return 2
 

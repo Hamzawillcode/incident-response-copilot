@@ -61,9 +61,9 @@
     <tr><td>Date</td><td>27 November 2026</td></tr>
     <tr><td>Stack</td><td>Postgres 17.8 + pgvector 0.8.1 (Docker) · psycopg 3.3 · google-genai 2.34 (<code>gemini-embedding-001</code>) · Google ADK 2.15 · Python 3.14</td></tr>
     <tr><td>New code</td><td><code>kb/</code>, <code>copilot/kb/</code>, <code>copilot/tools/kb.py</code>, <code>copilot/prompts/diagnosis_knowledge.md</code>, <code>docker-compose.yml</code>, <code>scripts/check_retrieval.py</code></td></tr>
-    <tr><td>Tests</td><td><span class="ok">565 passed</span> (545 unit + 20 against the real Postgres). The 13 live demo tests were skipped because the demo was not running. 151 new tests.</td></tr>
-    <tr><td>Measured</td><td>Keyword search on 28 test queries: <b>hit@3 = 0.93</b>. "checkout errors" returns the checkout runbook <b>first</b> (Week-3 target: top 3)</td></tr>
-    <tr><td>Still to measure</td><td><span class="pending">Gemini embeddings and hybrid search</span>, and agent runs with <code>--knowledge</code>. All three need <code>GOOGLE_API_KEY</code> (section 15)</td></tr>
+    <tr><td>Tests</td><td><span class="ok">571 passed</span> (551 unit + 20 against the real Postgres). The 13 live demo tests were skipped because the demo was not running. 157 new tests.</td></tr>
+    <tr><td>Measured</td><td>28 test queries with real Gemini embeddings: hybrid <b>hit@3 = 1.00</b> (keyword only: 0.93). "checkout errors" returns the checkout runbook <b>first</b> (Week-3 target: top 3)</td></tr>
+    <tr><td>Still to measure</td><td><span class="pending">Agent runs with <code>--knowledge</code></span> vs. without. They need the demo running with a fault on (section 15)</td></tr>
   </table>
 </section>
 
@@ -112,7 +112,7 @@
   <tr><td><code>copilot/tools/kb.py</code></td><td>The two agent tools, with the same contract as the telemetry tools.</td></tr>
   <tr><td><code>copilot/prompts/diagnosis_knowledge.md</code></td><td>Extra prompt section used only when the knowledge tools are attached.</td></tr>
   <tr><td><code>eval/retrieval_queries.yaml</code>, <code>scripts/check_retrieval.py</code></td><td>28 test queries with their correct documents, and the script that scores them.</td></tr>
-  <tr><td><code>tests/test_kb_*.py</code>, <code>tests/kb_fakes.py</code></td><td>138 new tests in new files, plus 13 added to the agent and security tests.</td></tr>
+  <tr><td><code>tests/test_kb_*.py</code>, <code>tests/kb_fakes.py</code></td><td>144 new tests in new files, plus 13 added to the agent and security tests.</td></tr>
 </table>
 </section>
 
@@ -231,7 +231,7 @@ runbook/payment#05-verification    154 chars</pre>
   <tr><td>Two task types</td><td>Sections use <code>RETRIEVAL_DOCUMENT</code>, questions use <code>RETRIEVAL_QUERY</code>. The model is trained for this "short question vs. long paragraph" case.</td></tr>
   <tr><td>768 dimensions</td><td>The default is 3072. The model is trained so a shorter prefix still works (Matryoshka). 768 is 4 times smaller and fits pgvector's 2,000-dimension index limit. Shortened vectors are re-normalised to length 1.</td></tr>
   <tr><td>Model stored per row</td><td>Vectors from two different models are not comparable. Search only compares rows from the query's model, and ingestion re-embeds when the model changes.</td></tr>
-  <tr><td>Batches and retries</td><td>Ingestion sends 50 texts per request and retries rate limits (back-off of 2, 4 and 8 s). Query embedding makes <b>one</b> attempt with a 10 s timeout (an incident must not wait) and keeps a 256-entry cache.</td></tr>
+  <tr><td>Batches and retries</td><td>Ingestion sends 50 texts per request. When Gemini says "too many requests", it waits as long as the API asks (up to 65 s, 5 retries). A used-up <i>daily</i> quota is reported at once. Query embedding during an investigation makes <b>one</b> attempt with a 10 s timeout (an incident must not wait) and keeps a 256-entry cache.</td></tr>
 </table>
 
 <h2>8. Hybrid search: keyword + vector + RRF</h2>
@@ -274,7 +274,13 @@ Ingested 19 documents, 116 sections. Embedding model: none (keyword-only)
   stored postmortems: 5 documents, 35 sections, 0 with embeddings
   stored runbooks: 14 documents, 81 sections, 0 with embeddings
 <span class="a">$ python -m copilot.kb.ingest</span>      <span class="muted"># second run: nothing changed, nothing to do</span>
-  inserted 0, updated 0, unchanged 116, deleted 0, embedded 0</pre>
+  inserted 0, updated 0, unchanged 116, deleted 0, embedded 0
+<span class="a">$ python -m copilot.kb.ingest</span>      <span class="muted"># after adding GOOGLE_API_KEY to .env</span>
+  embedding API: quota, waiting 17s and retrying      <span class="muted">&lt;- free-tier per-minute limit</span>
+Ingested 19 documents, 116 sections. Embedding model: gemini-embedding-001
+  inserted 0, updated 0, unchanged 116, deleted 0, embedded 116     <span class="muted">(24 s in total)</span>
+  stored postmortems: 5 documents, 35 sections, 35 with embeddings
+  stored runbooks: 14 documents, 81 sections, 81 with embeddings</pre>
 <ul>
   <li><b>Incremental:</b> each section's content hash is compared with the stored one. Only new or changed sections are embedded, so editing one runbook section costs one API call, not 116.</li>
   <li><b>All-or-nothing:</b> embeddings are computed <i>before</i> any write, and all writes happen in one transaction. If the API fails halfway (quota), the database is exactly as before (tested).</li>
@@ -308,23 +314,20 @@ Ingested 19 documents, 116 sections. Embedding model: none (keyword-only)
 <section class="page-break">
 <h2>12. Measuring retrieval</h2>
 <p>The guide's Week-3 target: <i>searching "checkout errors" returns the right runbook in the top 3</i>. We went further and wrote 28 test queries (<code>eval/retrieval_queries.yaml</code>), each listing the documents that count as correct: 20 that use words from the right document, and 8 <b>paraphrases</b> that describe the problem in other words.</p>
-<pre class="term"><span class="a">$ python scripts/check_retrieval.py --mode keyword</span>
-<span class="r">MISS</span> [runb/parap] rank=4  'customers cannot pay for their order'
-       expected ['payment'], got ['checkout', 'kafka-consumers', 'email']
-<span class="r">MISS</span> [runb/parap] rank=5  'the suggestions service uses more and more RAM'
-       expected ['recommendation'], got ['cart', 'payment', 'ad']
-
-mode=keyword retrieval=keyword
-  all        n=28  hit@1=0.86  hit@3=0.93  MRR=0.90
-  keyword    n=20  hit@1=1.00  hit@3=1.00  MRR=1.00
-  paraphrase n=8   hit@1=0.50  hit@3=0.75  MRR=0.66
-
-<span class="o">Week-3 check: 'checkout errors' -> checkout runbook in the top 3: PASS</span></pre>
+<table>
+  <tr><th>Mode</th><th>All 28: hit@1</th><th>All 28: hit@3</th><th>All 28: MRR</th><th>Paraphrases (8): hit@1</th><th>Paraphrases (8): hit@3</th></tr>
+  <tr><td>Keyword only</td><td>0.86</td><td>0.93</td><td>0.90</td><td>0.50</td><td>0.75</td></tr>
+  <tr><td>Vector only (Gemini)</td><td>0.96</td><td><b>1.00</b></td><td>0.98</td><td><b>0.88</b></td><td><b>1.00</b></td></tr>
+  <tr><td>Hybrid (default)</td><td>0.93</td><td><b>1.00</b></td><td>0.96</td><td>0.75</td><td><b>1.00</b></td></tr>
+</table>
+<p class="muted">Measured on 27 November 2026 with <code>gemini-embedding-001</code> (768 dimensions). All three modes score 1.00 on the 20 keyword-style queries, and all put the checkout runbook first for "checkout errors".</p>
 <ul>
   <li><b>hit@3</b> = share of queries whose correct document is in the top 3. <b>MRR</b> (mean reciprocal rank) = average of 1/rank of the first correct document (1.0 means always first).</li>
-  <li><b>What the misses show:</b> keyword search cannot connect "pay" with "payment charge" or "RAM" with "memory". That is exactly the gap meaning search (embeddings) should close, and the reason for a hybrid design.</li>
+  <li><b>What embeddings fixed:</b> keyword search cannot connect "pay" with "payment charge" or "RAM" with "memory". It ranked those two paraphrases 4th and 5th. With embeddings, every query has its correct document in the top 3.</li>
+  <li><b>An honest surprise:</b> vector-only puts the right paraphrase document <i>first</i> once more than hybrid (7 of 8 vs. 6 of 8). Keyword matches pulled two paraphrases down ("customers cannot pay…": rank 1 → 3) and lifted one ("fraud checks complete very late": rank 2 → 1).</li>
+  <li><b>Decision:</b> keep hybrid as the default, and do not tune on these 8 queries. The difference is one query, hit@3 is identical, and the agent reads the top 3–4 documents anyway. Real agent queries contain exact names (<code>oteldemo.PaymentService/Charge</code>, <code>valkey-cart:6379</code>) that this set does not test. Re-weighting until hybrid "wins" here would be fitting the test. The real decision comes from the agent-level comparison in Week 5.</li>
 </ul>
-<div class="callout warn"><b>Honest limits</b>I wrote both the documents and the queries, after reading the documents, so the keyword-style score of 1.00 is optimistic. This is a <b>regression check</b> (does a change make search worse?), not a benchmark. The hybrid numbers do not exist yet because they need the Gemini key. Do not quote any hybrid number until <code>check_retrieval.py --mode hybrid</code> has run.</div>
+<div class="callout warn"><b>Honest limits</b>I wrote both the documents and the queries, after reading the documents, so the scores are optimistic. This is a <b>regression check</b> (does a change make search worse?), not a benchmark. Eight paraphrase queries are too few to separate vector from hybrid.</div>
 
 <h2>13. The agent's knowledge mode</h2>
 <p><code>build_diagnosis_agent(knowledge=True)</code> attaches the 2 search tools and appends a short prompt section (<code>diagnosis_knowledge.md</code>):</p>
@@ -342,7 +345,7 @@ mode=keyword retrieval=keyword
 <table>
   <tr><th style="width:26%">Test file</th><th>What it checks</th></tr>
   <tr><td><code>test_kb_documents.py</code> (46)</td><td>Front matter, sections, Overview chunk, code blocks never split, hashes change only for the edited section, malformed documents rejected with the file name, fault-injection words refused with the line number. On the real <code>kb/</code>: 10–15 runbooks, 5 postmortems, required sections, only real service names.</td></tr>
-  <tr><td><code>test_kb_embeddings.py</code> (25)</td><td>A fake google-genai client: batches of 50, task types, 768 dimensions, normalisation, cache, retries for documents but not queries, typed errors, API key removed from messages.</td></tr>
+  <tr><td><code>test_kb_embeddings.py</code> (31)</td><td>A fake google-genai client: batches of 50, task types, 768 dimensions, normalisation, cache, retries for documents but not queries, waiting as long as the API asks, daily quota reported at once, typed errors, both API key formats removed from messages.</td></tr>
   <tr><td><code>test_kb_search.py</code> (19)</td><td>RRF arithmetic, grouping, truncation, every fallback path, explicit modes raising, read-only connection.</td></tr>
   <tr><td><code>test_kb_tools.py</code> (28)</td><td>Tool contract: validation before any database access, refused queries not echoed, typed errors, output scrubbed even if a bad document slipped through.</td></tr>
   <tr><td><code>test_kb_db.py</code> (20, real Postgres)</td><td>Ingestion is idempotent and incremental; a failed embedding run writes nothing; the guide's two checks; at least 90 % hit@3 on keyword-style queries; hostile queries; pgvector path with an offline embedder; models never mixed; read-only session.</td></tr>
@@ -357,18 +360,22 @@ mode=keyword retrieval=keyword
   <dd>One database test edited "Restart payment" in a copy of the runbook, but the text says "restart payment" (lower case), so nothing changed and the test failed for the wrong reason. The test now asserts that its own edit really changed the file. Another test's pattern <code>%false-alarm%</code> also matched the runbook <code>known-noise-and-false-alarms.md</code>. Lesson: a test needs a check that its setup worked.</dd>
   <dt>4. Wrong attribute name (caught before it shipped)</dt>
   <dd>The product-catalog runbook was going to say <code>app.product.id</code>. The demo source uses <code>demo.product.id</code>. A runbook with the wrong name would have sent the agent to an empty query.</dd>
+  <dt>5. The free tier's per-minute limit (found on the first real run)</dt>
+  <dd>The first ingestion with the key got "429: too many requests". My back-off (2, 4, 8 s) gave up inside the same minute, and, as designed, nothing was written. Fix: wait as long as Gemini's <code>RetryInfo</code> says, report a used-up <i>daily</i> quota at once, and print a progress line. The next run took 24 s, including one 17 s wait. The retrieval check now embeds its 28 queries in one batched request, so a rate limit cannot turn into wrong scores.</dd>
+  <dt>6. A new API key format</dt>
+  <dd>The AI Studio key starts with <code>AQ.</code> and has 53 characters, not the classic <code>AIza…</code> (39). It works, but my "remove keys from error messages" rule only knew the old format. It now removes both, with a test for each (using obviously fake keys, so GitHub's secret scanning has nothing to flag).</dd>
 </dl>
 </section>
 
 <section class="page-break">
 <h2>15. Status, how to run it, limitations</h2>
-<div class="callout warn"><b>Honest status</b>Built and tested: 565 tests passed (545 unit + 20 against the real Postgres). Keyword search is measured: the Week-3 target is met ("checkout errors" puts the checkout runbook first). <b>Not yet done</b>, because no Gemini key was configured: embeddings, the hybrid measurement and agent runs with <code>--knowledge</code>. Do not quote hybrid or agent accuracy numbers until those runs exist.</div>
+<div class="callout warn"><b>Honest status</b>Built and tested: 571 tests passed (551 unit + 20 against the real Postgres). Retrieval is measured with real Gemini embeddings: hybrid hit@3 = 1.00 on 28 queries, and the Week-3 target is met. <b>Not yet done:</b> agent runs with <code>--knowledge</code> vs. without, which need the demo running with a fault on. Do not quote any agent accuracy number until those runs exist.</div>
 <h3>Run it yourself</h3>
 <ol>
   <li><code>docker compose up -d kb-postgres</code> starts Postgres + pgvector (loopback only, port 5433).</li>
   <li><code>.venv/bin/python -m copilot.kb.ingest</code> loads the 19 documents. Without a key it stores text only.</li>
   <li><code>.venv/bin/python scripts/check_retrieval.py -v</code> shows the top 3 for all 28 queries.</li>
-  <li>Add <code>GOOGLE_API_KEY</code> to <code>.env</code>, re-run ingestion (all 116 sections are embedded once), then run <code>check_retrieval.py --mode hybrid</code> and compare with keyword mode.</li>
+  <li>With <code>GOOGLE_API_KEY</code> in <code>.env</code>, re-run ingestion (all 116 sections are embedded once), then compare <code>check_retrieval.py --mode keyword</code>, <code>--mode vector</code> and <code>--mode hybrid</code>.</li>
   <li>With the demo running and a fault on: <code>run_diagnosis.py --knowledge --runs 5</code> vs. <code>run_diagnosis.py --runs 5</code>. That is a first look at what RAG adds.</li>
 </ol>
 <h3>Limitations (known, planned)</h3>
@@ -386,7 +393,7 @@ mode=keyword retrieval=keyword
   <dt>What is RAG and why does an incident copilot need it?</dt>
   <dd>Retrieval-Augmented Generation: search your own documents first, then let the LLM answer with what it found. The fix for many incidents is already written down in a runbook or an old postmortem, but nobody remembers where. RAG makes that team knowledge available to the agent in seconds.</dd>
   <dt>Why hybrid search instead of only vectors?</dt>
-  <dd>They fail differently. Keyword search is precise on exact names (<code>valkey-cart</code>, <code>oteldemo.PaymentService/Charge</code>) but misses paraphrases: my measurement shows paraphrase hit@3 of 0.75 vs. 1.00 for queries that share words. Vector search handles paraphrases but is weaker on exact identifiers and harder to explain. RRF combines the two using only ranks, so no score calibration is needed.</dd>
+  <dd>They fail differently. Keyword search is precise on exact names (<code>valkey-cart</code>, <code>oteldemo.PaymentService/Charge</code>) but misses paraphrases: paraphrase hit@3 was 0.75 with keywords and 1.00 with embeddings. Vector search handles paraphrases but can be weaker on rare identifiers and harder to explain. RRF combines the two using only ranks. To be honest about my own numbers: on my 8 paraphrase queries, vector-only was first-ranked once more often than hybrid. I kept hybrid because hit@3 was identical and the set has no identifier-heavy queries, and I did not tune on such a small set. The agent-level comparison decides.</dd>
   <dt>How did you chunk the documents?</dt>
   <dd>One chunk per <code>##</code> section, with the title and heading added to the embedded text. Sections are the natural unit (Symptoms, Diagnosis, Remediation), so the agent gets complete procedures rather than fragments. Long sections are split at paragraph boundaries, never inside code.</dd>
   <dt>How do you keep embeddings in sync with the documents?</dt>
@@ -402,7 +409,7 @@ mode=keyword retrieval=keyword
   <dt>Why pgvector and not a dedicated vector database?</dt>
   <dd>The copilot already needs Postgres for sessions and incidents (Week 4). pgvector adds vector search to the same database: one system to run, real transactions across text and vectors, and SQL filters (kind, model) in the same query. At 116 rows an exact scan is enough. I would add an HNSW index above about 10,000 rows.</dd>
   <dt>How did you measure retrieval quality, and what are the limits?</dt>
-  <dd>28 labelled queries, reporting hit@1, hit@3 and MRR, split into keyword-style and paraphrase queries. Keyword-only today: hit@3 = 0.93 overall, 1.00 vs. 0.75 for the two groups. The limit is that I wrote both the documents and the queries, so this is a regression check, not an unbiased benchmark. The hybrid numbers wait for the API key.</dd>
+  <dd>28 labelled queries, reporting hit@1, hit@3 and MRR, split into keyword-style and paraphrase queries, for three modes. hit@3 overall: keyword 0.93, vector 1.00, hybrid 1.00. The embeddings fixed every paraphrase miss. The limit is that I wrote both the documents and the queries, so this is a regression check, not an unbiased benchmark.</dd>
   <dt>What changes for a real customer?</dt>
   <dd>Ingest their runbooks and postmortems (Confluence or Git exports), keep the same chunking, run my query set plus questions from their own past incidents, and give the search tool a read-only database role. Their incident history becomes the evaluation set.</dd>
 </dl>

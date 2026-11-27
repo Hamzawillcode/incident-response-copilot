@@ -40,15 +40,25 @@ def embedder(*script) -> tuple[GeminiEmbedder, FakeModels]:
     return GeminiEmbedder(model="gemini-embedding-001", client=SimpleNamespace(models=models)), models
 
 
-def api_error(code: int, message: str = "boom") -> errors.APIError:
+def api_error(code: int, message: str = "boom", *, retry_delay: str | None = None,
+              quota_id: str | None = None) -> errors.APIError:
     cls = errors.ClientError if code < 500 else errors.ServerError
-    return cls(code, {"error": {"code": code, "message": message, "status": "X"}})
+    details = []
+    if quota_id:
+        details.append({"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [{"quotaId": quota_id}]})
+    if retry_delay:
+        details.append({"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": retry_delay})
+    return cls(code, {"error": {"code": code, "message": message, "status": "X", "details": details}})
+
+
+SLEEPS: list[float] = []
 
 
 @pytest.fixture(autouse=True)
 def _fresh_cache_and_no_sleep(monkeypatch):
     embeddings._QUERY_CACHE.clear()
-    monkeypatch.setattr(embeddings.time, "sleep", lambda s: None)
+    SLEEPS.clear()
+    monkeypatch.setattr(embeddings.time, "sleep", SLEEPS.append)
 
 
 # --------------------------------------------------------------------------- #
@@ -156,11 +166,13 @@ def test_client_errors_are_typed_and_not_retried(code, type_):
     assert info.value.type == type_ and len(models.calls) == 1
 
 
-def test_api_keys_never_appear_in_error_messages():
-    emb, _ = embedder(api_error(400, "API key not valid: AIzaFAKE-not-a-real-key-0123456789"))   # deliberately fake
+@pytest.mark.parametrize("fake_key", ["AIzaFAKE-not-a-real-key-0123456789",          # deliberately fake
+                                      "AQ.FAKE-not.a-real-key_0123456789abcdef"])     # newer key format
+def test_api_keys_never_appear_in_error_messages(fake_key):
+    emb, _ = embedder(api_error(400, f"API key not valid: {fake_key}"))
     with pytest.raises(EmbeddingError) as info:
         emb.embed_query("x")
-    assert "AIza" not in info.value.message and "[key]" in info.value.message
+    assert fake_key[:4] not in info.value.message and "[key]" in info.value.message
 
 
 @pytest.mark.parametrize("exc, type_", [(httpx.ReadTimeout("slow"), "timeout"),
@@ -188,3 +200,43 @@ def test_normalize():
     assert normalize([3.0, 4.0]) == [0.6, 0.8]
     with pytest.raises(EmbeddingError):
         normalize([])
+
+
+def test_rate_limits_wait_as_long_as_the_api_asks_and_report_progress():
+    emb, models = embedder(api_error(429, retry_delay="41.5s", quota_id="EmbedPerMinutePerProject-FreeTier"), ok)
+    waits = []
+    emb.on_wait = lambda seconds, why: waits.append((seconds, why))
+    assert len(emb.embed_documents(["a"])) == 1 and len(models.calls) == 2
+    assert SLEEPS == [41.5] and waits == [(41.5, "quota")]
+
+
+def test_waits_are_capped_and_fall_back_to_backoff():
+    emb, _ = embedder(api_error(429, retry_delay="900s"), api_error(503), ok)
+    emb.embed_documents(["a"])
+    assert SLEEPS == [embeddings.MAX_WAIT_SECONDS, 4.0]          # capped server delay, then plain back-off
+
+
+def test_an_exhausted_daily_quota_is_reported_at_once():
+    emb, models = embedder(api_error(429, retry_delay="30s", quota_id="EmbedContentRequestsPerDayPerProject-FreeTier"))
+    with pytest.raises(EmbeddingError) as info:
+        emb.embed_documents(["a"])
+    assert info.value.type == "quota_daily" and "tomorrow" in info.value.message
+    assert len(models.calls) == 1 and SLEEPS == []
+
+
+def test_malformed_error_details_are_ignored():
+    err = errors.ClientError(429, {"error": {"code": 429, "message": "slow down", "details": [
+        "junk", {"@type": "x.RetryInfo", "retryDelay": "soon"}, {"@type": "x.QuotaFailure", "violations": "bad"}]}})
+    emb, _ = embedder(err, ok)
+    emb.embed_documents(["a"])
+    assert SLEEPS == [2.0]
+
+
+def test_warm_queries_batches_once_and_then_serves_from_the_cache():
+    emb, models = embedder(ok)
+    emb.warm_queries(["checkout errors", "payment errors", "checkout errors"])      # duplicates embedded once
+    assert len(models.calls) == 1 and models.calls[0]["contents"] == ["checkout errors", "payment errors"]
+    assert models.calls[0]["config"].task_type == "RETRIEVAL_QUERY"
+    emb.embed_query("payment errors")
+    emb.warm_queries(["payment errors"])
+    assert len(models.calls) == 1                                                    # all from the cache

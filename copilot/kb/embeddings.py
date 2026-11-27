@@ -16,7 +16,9 @@ Design notes
   text only and search runs keyword-only, so the knowledge base works before a key
   exists and keeps working if the embedding API is down during an incident.
 * Query embedding is a single attempt with a short timeout (the caller falls back to
-  keyword search); document embedding during ingestion retries rate limits.
+  keyword search). Document embedding during ingestion retries rate limits, waiting as
+  long as the API's ``RetryInfo`` asks (free-tier limits are per minute); an exhausted
+  *daily* quota is reported at once instead of retried.
 * The query text is sent to Google, the same provider that already receives every
   prompt and tool result from the agent, so no new party sees incident data.
 """
@@ -28,7 +30,7 @@ import os
 import re
 import time
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
 from copilot.tools._http import float_from_env
@@ -39,20 +41,27 @@ __all__ = ["DEFAULT_MODEL", "EMBEDDING_DIM", "Embedder", "EmbeddingError", "Gemi
 EMBEDDING_DIM = 768
 DEFAULT_MODEL = "gemini-embedding-001"
 BATCH_SIZE = 50                 # texts per request (the API accepts up to 100)
-DOCUMENT_RETRIES = 3            # rate limits / server errors during ingestion
+DOCUMENT_RETRIES = 5            # rate limits / server errors during ingestion
+MAX_WAIT_SECONDS = 65.0         # longest single wait between retries (free-tier limits are per minute)
+_RETRYABLE = frozenset({"quota", "unavailable", "timeout", "connection"})
 QUERY_CACHE_SIZE = 256
 _MODEL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._\-/]{0,99}")
-_API_KEY = re.compile(r"AIza[0-9A-Za-z_\-]{20,}")
+# Classic Google API keys ("AIza" + 35) and the newer "AQ." format; removed from any error message.
+_API_KEY = re.compile(r"AIza[0-9A-Za-z_\-]{20,}|AQ\.[0-9A-Za-z_\-.]{20,}")
 
 
 class EmbeddingError(Exception):
-    """Embedding failed. ``type``: quota | auth | invalid_request | model_not_found | unavailable |
-    timeout | connection | invalid_response | configuration."""
+    """Embedding failed. ``type``: quota | quota_daily | auth | invalid_request | model_not_found |
+    unavailable | timeout | connection | invalid_response | configuration.
 
-    def __init__(self, type_: str, message: str):
+    ``retry_after``: seconds the API asked us to wait (rate limits), if it said so.
+    """
+
+    def __init__(self, type_: str, message: str, retry_after: float | None = None):
         super().__init__(message)
         self.type = type_
         self.message = message
+        self.retry_after = retry_after
 
 
 class Embedder(Protocol):
@@ -118,10 +127,12 @@ _QUERY_CACHE: OrderedDict[tuple[str, str], list[float]] = OrderedDict()
 class GeminiEmbedder:
     """Embeddings from the Gemini API (AI Studio key, or Vertex AI)."""
 
-    def __init__(self, model: str | None = None, *, timeout_seconds: float | None = None, client: Any = None):
+    def __init__(self, model: str | None = None, *, timeout_seconds: float | None = None, client: Any = None,
+                 on_wait: Callable[[float, str], None] | None = None):
         self.model = model or embedding_model()
         self.timeout_seconds = timeout_seconds or float_from_env("KB_EMBEDDING_TIMEOUT_SECONDS", 10.0, 0.0, 120.0)
         self._client = client
+        self.on_wait = on_wait          # called as on_wait(seconds, reason) before each retry (progress output)
 
     def _get_client(self) -> Any:
         if self._client is None:
@@ -147,10 +158,26 @@ class GeminiEmbedder:
             _QUERY_CACHE.move_to_end(key)
             return list(_QUERY_CACHE[key])
         vector = self._embed([text], "RETRIEVAL_QUERY", retries=0)[0]
-        _QUERY_CACHE[key] = vector
+        self._remember(text, vector)
+        return list(vector)
+
+    def warm_queries(self, texts: Sequence[str]) -> None:
+        """Embed many known queries in batched, retried calls and cache them (evaluation runs).
+
+        Later ``embed_query`` calls for these texts are answered from the cache, so an evaluation
+        makes one request per 50 queries instead of one per query (kinder to per-minute limits).
+        """
+        todo = [t for t in dict.fromkeys(texts) if (self.model, t) not in _QUERY_CACHE]
+        for start in range(0, len(todo), BATCH_SIZE):
+            batch = todo[start:start + BATCH_SIZE]
+            for text, vector in zip(batch, self._embed(batch, "RETRIEVAL_QUERY", retries=DOCUMENT_RETRIES),
+                                    strict=True):
+                self._remember(text, vector)
+
+    def _remember(self, text: str, vector: list[float]) -> None:
+        _QUERY_CACHE[(self.model, text)] = vector
         while len(_QUERY_CACHE) > QUERY_CACHE_SIZE:
             _QUERY_CACHE.popitem(last=False)
-        return list(vector)
 
     def _embed(self, texts: list[str], task_type: str, *, retries: int) -> list[list[float]]:
         from google.genai import errors, types
@@ -166,9 +193,12 @@ class GeminiEmbedder:
                 failure = _api_error(exc)
             except Exception as exc:  # httpx timeouts / connection errors raised through the SDK
                 failure = _transport_error(exc)
-            if attempt == retries or failure.type not in ("quota", "unavailable", "timeout", "connection"):
+            if attempt == retries or failure.type not in _RETRYABLE:
                 raise failure
-            time.sleep(min(2.0 ** (attempt + 1), 20.0))
+            wait = min(max(failure.retry_after or 0.0, 2.0 ** (attempt + 1)), MAX_WAIT_SECONDS)
+            if self.on_wait:
+                self.on_wait(wait, failure.type)
+            time.sleep(wait)
         raise EmbeddingError("internal", "unreachable")  # pragma: no cover
 
 
@@ -189,6 +219,10 @@ def _vectors(response: Any, expected: int) -> list[list[float]]:
 def _api_error(exc: Any) -> EmbeddingError:
     code = getattr(exc, "code", None)
     detail = _API_KEY.sub("[key]", " ".join(str(getattr(exc, "message", "") or exc).split()))[:200]
+    quota_ids, retry_after = _error_details(exc)
+    if code == 429 and any("PerDay" in q for q in quota_ids):
+        return EmbeddingError("quota_daily", "The daily Gemini embedding quota is used up "
+                                             f"({', '.join(quota_ids)}). Try again tomorrow or use --keyword-only.")
     if code == 429:
         type_ = "quota"
     elif code in (401, 403):
@@ -199,7 +233,28 @@ def _api_error(exc: Any) -> EmbeddingError:
         type_ = "invalid_request"
     else:
         type_ = "unavailable"
-    return EmbeddingError(type_, f"Gemini embedding API returned {code}: {detail}")
+    return EmbeddingError(type_, f"Gemini embedding API returned {code}: {detail}",
+                          retry_after=retry_after if code == 429 else None)
+
+
+def _error_details(exc: Any) -> tuple[list[str], float | None]:
+    """Quota IDs and the requested retry delay from a Google API error body, when present."""
+    quota_ids: list[str] = []
+    retry_after = None
+    details = getattr(exc, "details", None)
+    items = details.get("error", {}).get("details", []) if isinstance(details, dict) else []
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        kind = str(item.get("@type", ""))
+        if kind.endswith("QuotaFailure"):
+            quota_ids += [str(v.get("quotaId")) for v in item.get("violations", []) if isinstance(v, dict)]
+        elif kind.endswith("RetryInfo"):
+            try:
+                retry_after = float(str(item.get("retryDelay", "")).rstrip("s"))
+            except ValueError:
+                retry_after = None
+    return quota_ids, retry_after
 
 
 def _transport_error(exc: Exception) -> EmbeddingError:

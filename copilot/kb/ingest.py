@@ -198,6 +198,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         embedder = None if (args.keyword_only or args.dry_run) else embeddings.make_embedder()
+        if embedder is not None and hasattr(embedder, "on_wait"):
+            embedder.on_wait = lambda seconds, why: print(f"  embedding API: {why}, waiting {seconds:.0f}s and retrying",
+                                                          file=sys.stderr, flush=True)
         if embedder is None and not (args.keyword_only or args.dry_run):
             print("note: no Gemini key configured (GOOGLE_API_KEY in .env), so sections are stored without "
                   "embeddings and searches run keyword-only. Run ingestion again after adding the key.",
